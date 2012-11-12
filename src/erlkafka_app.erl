@@ -10,7 +10,7 @@
 -export([start/2, stop/1]).
 
 start(normal, _Args) ->
-   erlkafka_root_sup:start_link(1).
+    erlkafka_root_sup:start_link(1).
 
 stop(_State) -> 
-  ok.
+    ok.
