@@ -1,0 +1,9 @@
+/ebin
+/deps
+/logs
+.DS_Store
+/.test
+/test/*.beam
+*.swp
+erl_crash.dump
+

@@ -1,29 +1,28 @@
 {application, erlkafka_app,
-   [{vsn, "0.6.0"}, 
-    {modules, [
-               erlkafka_app,
-	       erlkafka,
+ [{vsn, "0.6.0"},
+  {modules, [
+      erlkafka_app,
+      erlkafka,
 %----------------------------------------------------------------
-%                      Supervisor Hiearchy 
+%                      Supervisor Hiearchy
 %----------------------------------------------------------------
-               erlkafka_root_sup,                       % RootSup
-                  kafka_server_sup,  			% ServerSup
-		        kafka_server,   	 	  
-		  kafka_stream_consumer_sup,		% ConsumerSup
-			kafka_sequential_reader,
-                        kafka_stream_consumer,
+      erlkafka_root_sup,    % RootSup
+          kafka_server_sup, % ServerSup
+              kafka_server,
+          kafka_stream_consumer_sup, % ConsumerSup
+              kafka_sequential_reader,
+              kafka_stream_consumer,
 %----------------------------------------------------------------
-%                      Library Modules 
+%                      Library Modules
 %----------------------------------------------------------------
-               kafka_simple_api, kafka_protocol,
-	       uuid
-                ]}, 
-    {registered, [erlkafka_app]}, 
-    {mod, {erlkafka_app, []}}, 
-    {applications, [kernel, stdlib]}, 
-    {env, [ 
-    	   {enable_kafka_autodiscovery, false}, 
-           {kafka_brokers, [{0, '127.0.1.1', 9092}]},
-           {kafka_prefix, ""}
-    	   ]}
-  ]}.
+      kafka_simple_api, kafka_protocol, uuid
+  ]},
+  {registered, [erlkafka_app]},
+  {mod, {erlkafka_app, []}},
+  {applications, [kernel, stdlib]},
+  {env, [
+      {enable_kafka_autodiscovery, false},
+      {kafka_brokers, [{0, '127.0.1.1', 9092}]},
+      {kafka_prefix, ""}
+  ]}
+ ]}.
