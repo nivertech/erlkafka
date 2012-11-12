@@ -13,15 +13,13 @@
 %%%                         API FUNCTIONS
 %%%-------------------------------------------------------------------
 uuid() ->
-   uuid:v4().
+    uuid:to_string(uuid:get_v4()).
 
 get_kafka_stream_consumer(Broker, Topic, Partition, Offset) -> 
     {A1, A2, A3} = now(),
     random:seed(A1, A2, A3),
-    UuidKSR_1 = uuid(),
-    UuidKSR = uuid:to_string(UuidKSR_1),
-    UuidKSC_1 = uuid(),
-    UuidKSC = uuid:to_string(UuidKSC_1),
+    UuidKSR = uuid(),
+    UuidKSC = uuid(),
     {ok, KsrPid} = supervisor:start_child(
          kafka_stream_consumer_sup,
          {UuidKSR,
