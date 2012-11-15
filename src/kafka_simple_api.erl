@@ -93,7 +93,7 @@ produce_test() ->
     Topic = <<"test">>,
     Partition = 0,
     Messages = [<<"hi">>, <<"there">>],
-    produce(BrokerId, Topic, Partition, Messages).    
+    produce(BrokerId, Topic, Partition, Messages).
 
 multi_produce_test() ->
     BrokerId = 0,
