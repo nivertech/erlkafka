@@ -19,7 +19,7 @@
   ]},
   {registered, [erlkafka_app]},
   {mod, {erlkafka_app, []}},
-  {applications, [kernel, stdlib]},
+  {applications, [kernel, stdlib, uuid, ezk]},
   {env, [
       {enable_kafka_autodiscovery, false},
       {kafka_brokers, [{0, '127.0.1.1', 9092}]},
