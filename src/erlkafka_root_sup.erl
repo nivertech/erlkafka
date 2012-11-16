@@ -13,7 +13,7 @@ start_link(_Params) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    RestartStrategy = {one_for_one, 0, 1},
+    RestartStrategy = {one_for_one, 1, 60*60}, % You get a second chance!
     Children = [
      {erlkafka_server_sup,
       {erlkafka_server_sup, start_link,[]},

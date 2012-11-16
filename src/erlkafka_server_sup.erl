@@ -59,7 +59,7 @@ get_ids() ->
 %%%-------------------------------------------------------------------
 init([Params]) ->
     BrokerPoolCount = param(broker_pool_count, ?DEFAULT_POOL_COUNT),
-    RestartStrategy = {one_for_one, 0, 1},
+    RestartStrategy = {one_for_one, 10, 60*60}, % allowing 10 crashes per hour
     Children = lists:flatten(
         lists:map(
             fun({Broker, Host, Port}) ->
