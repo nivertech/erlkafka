@@ -60,25 +60,25 @@ get_list_of_broker_partitions(Topic) ->
 %%%-------------------------------------------------------------------
 call({Broker, request, Req}) -> 
     case erlkafka_server_sup:get_random_broker_instance_from_pool(Broker) of
-        {error, _} ->
+        [] ->
             {error, unable_to_get_broker_instance_from_pool};
-        {BrokerInstancePid, _BrokerInstanceId} -> 
+        [{BrokerInstancePid, _BrokerInstanceId}] -> 
             gen_server:call(BrokerInstancePid, {request, Req})
     end;
 
 call({Broker, request_with_response_offset, Req}) ->
     case erlkafka_server_sup:get_random_broker_instance_from_pool(Broker) of
-        {error, _} ->
+        [] ->
             {error, unable_to_get_broker_instance_from_pool};
-        {BrokerInstancePid,_BrokerInstanceId}  ->
+        [{BrokerInstancePid,_BrokerInstanceId}]  ->
             gen_server:call(BrokerInstancePid, {request_with_response_offset, Req})
     end;
 
 call({Broker, request_with_response, Req}) ->
     case erlkafka_server_sup:get_random_broker_instance_from_pool(Broker) of
-        {error, _} ->
+        [] ->
             {error, unable_to_get_broker_instance_from_pool};
-        {BrokerInstancePid,_BrokerInstanceId}  ->
+        [{BrokerInstancePid,_BrokerInstanceId}]  ->
             gen_server:call(BrokerInstancePid, {request_with_response, Req})
     end.
 

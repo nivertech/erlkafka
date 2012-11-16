@@ -40,17 +40,14 @@ start_link(Params) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, [Params]).
 
 get_random_broker_instance_from_pool(Broker) ->
-    BrokerPoolCount = param("BrokerPoolCount", ?DEFAULT_POOL_COUNT),
+    BrokerPoolCount = param(broker_pool_count, ?DEFAULT_POOL_COUNT),
     Pids = get_ids(),
     BrokerInstance = Broker*BrokerPoolCount + random:uniform(BrokerPoolCount),
-    lists:nth(1, lists:filter(
-            fun({_Child, Id}) ->
-                case Id =:=  BrokerInstance of
-                    true -> true;
-                    false-> false
-                end
+    lists:filter(
+            fun({Child, Id}) ->
+                Id =:= BrokerInstance andalso is_pid(Child)
             end,
-            Pids)).
+            Pids).
 
 get_ids() ->
     [{Child, Id}

@@ -87,7 +87,7 @@ multi_fetch_request(TopicPartitionOffsets) ->
     <<RequestHeader/binary, RequestBody/binary>>.
 
 %% @doc parse the fetched messages
--spec parse_messages(Bs::binary()) -> {list()}.
+-spec parse_messages(Bs::binary()) -> {[binary()], non_neg_integer()}.
 parse_messages(Bs) ->
     parse_messages(Bs, [], 0).
 
@@ -191,7 +191,7 @@ offset_request(Topic, Partition, Time, MaxNumberOfOffsets) ->
 
 
 %% @doc Parsing the results of the offset request 
--spec parse_offsets(binary()) -> binary().
+-spec parse_offsets(binary()) -> {[byte()]}.
 parse_offsets(<<NumOffsets:32/integer, Ds/binary>>) ->
     parse_offsets(Ds, [], NumOffsets).
 
