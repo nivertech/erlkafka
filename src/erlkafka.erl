@@ -7,7 +7,6 @@
 -include("erlkafka.hrl").
 
 -export([get_kafka_stream_consumer/4, uuid/0]).
--import(uuid).
 
 %%%-------------------------------------------------------------------
 %%%                         API FUNCTIONS

@@ -51,7 +51,7 @@ fetch_request(Topic, Offset, MaxSize) ->
                     Partition::integer(),
                     MaxSize::integer()) -> binary().
 fetch_request(Topic, Offset,Partition, MaxSize) ->
-    TopicSize = size(Topic),
+    TopicSize = byte_size(Topic),
     RequestSize = 2 + 2 + TopicSize + 4 + 8 + 4,
     <<RequestSize:32/integer,
       ?RQ_TYPE_FETCH:16/integer,
@@ -74,7 +74,7 @@ multi_fetch_request(TopicPartitionOffsets) ->
                       TopicPartitionCount:16/integer>>,
     RequestBody = lists:foldr(
         fun({Topic, Partition, Offset, MaxSize}, Acc) ->
-            TopicLength = size(Topic),
+            TopicLength = byte_size(Topic),
             <<TopicLength:16/integer,
               Topic/binary,
               Partition:32/integer,
@@ -117,8 +117,7 @@ produce_request(Topic, Partition,  Messages) ->
                       Messages::list()) -> binary().
 produce_request(Topic, Partition, Magic, Compression, Messages) ->
     MessagesLength = size_of_produce_messages(Messages),
-    io:format("Messages_Length = ~w~n", [MessagesLength]),
-    TopicSize = size(Topic),
+    TopicSize = byte_size(Topic),
     RequestSize = 2 + 2 + TopicSize + 4 + 4 + MessagesLength,
     ProducedMessages = lists:foldr(
         fun(X, A) ->
@@ -149,12 +148,12 @@ multi_produce_request(TopicPartitionMessages) ->
                       TopicPartitionCount:16/integer>>,
     RequestBody = lists:foldr(
         fun({Topic, Partition, Messages},Acc1) ->
-            TopicLength = size(Topic),
+            TopicLength = byte_size(Topic),
             {MessagesLength, MessagesBin} =
             lists:foldr(
                 fun({Magic, Compression, MsgBin}, {Count, Bin}) ->
                     KafkaMessage=produce_message(MsgBin,Magic, Compression),
-                    {size(KafkaMessage) + Count, <<KafkaMessage/binary, Bin/binary>>}
+                    {byte_size(KafkaMessage) + Count, <<KafkaMessage/binary, Bin/binary>>}
                 end,
                 {0, <<"">>},
                 Messages),
@@ -179,7 +178,7 @@ multi_produce_request(TopicPartitionMessages) ->
                      Time::integer(),
                      MaxNumberOfOffsets::integer()) -> binary().
 offset_request(Topic, Partition, Time, MaxNumberOfOffsets) ->
-    TopicSize = size(Topic),
+    TopicSize = byte_size(Topic),
     RequestLength = 2+2+TopicSize+4+8+4,
     <<RequestLength:32/integer,
       ?RQ_TYPE_OFFSETS:16/integer,
@@ -288,7 +287,7 @@ get_path_for_broker_topics() ->
     end.
 
 produce_message (X, Magic, Compression) ->
-    MessageLength = 1+1+4+size(X),
+    MessageLength = 1+1+4+byte_size(X),
     CheckSum = erlang:crc32(X),
     <<MessageLength:32/integer,
       Magic:8/integer,
@@ -298,16 +297,16 @@ produce_message (X, Magic, Compression) ->
 
 size_multi_fetch_tpos (TPOs) ->
     lists:foldl(fun({Topic, _, _, _},A) ->
-                    2 + size(Topic) + 4 + 8 + 4 + A
+                    2 + byte_size(Topic) + 4 + 8 + 4 + A
                 end,
                 0,
                 TPOs).
 
 size_multi_produce_tpms(TopicPartitionMessages) ->
     lists:foldl(fun({Topic, _, Messages},Acc1) ->
-                    2+size(Topic) +  4+4 +
+                    2+byte_size(Topic) +  4+4 +
                     lists:foldl(fun({_Magic, _Compression, X}, Acc2) ->
-                                    4+1+1+4+size(X) + Acc2
+                                    4+1+1+4+byte_size(X) + Acc2
                                 end,
                                 0,
                                 Messages)
@@ -318,7 +317,7 @@ size_multi_produce_tpms(TopicPartitionMessages) ->
 
 size_of_produce_messages(Messages) ->
     lists:foldl(fun (X, Size) ->
-                    Size + 4 + 1 + 1 + 4 + size(X)
+                    Size + 4 + 1 + 1 + 4 + byte_size(X)
                 end,
                 0,
                 Messages).
@@ -332,7 +331,7 @@ parse_offsets(<<Offset:8/integer, Rest/binary>>, Offsets, NumOffsets) ->
 
 parse_messages(<<>>, Acc, Size) ->
     {lists:reverse(Acc), Size};
-parse_messages(<<L:32/integer, _/binary>> = B, Acc, Size) when size(B) >= L + 4->
+parse_messages(<<L:32/integer, _/binary>> = B, Acc, Size) when byte_size(B) >= L + 4->
     MsgLengthOfPayload = L -1 -1 -4 ,
     <<_:32/integer, _M:8/integer, _C:8/integer, _Check:32/integer,
       Msg:MsgLengthOfPayload/binary,
