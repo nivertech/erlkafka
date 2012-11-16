@@ -1,8 +1,8 @@
 %%%-------------------------------------------------------------------
-%%% File     : kafka_stream_consumer_sup.erl
+%%% File     : erlkafka_stream_consumer_sup.erl
 %%% Author   : Milind Parikh <milindparikh@gmail.com>
 %%%-------------------------------------------------------------------
--module(kafka_stream_consumer_sup).
+-module(erlkafka_stream_consumer_sup).
 -author("Milind Parikh <milindparikh@gmail.com> [http://www.milindparikh.com]").
 -behaviour(supervisor).
 

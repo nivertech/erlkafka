@@ -1,8 +1,8 @@
 %%%-------------------------------------------------------------------
-%%% File     : kafka_protocol.erl
+%%% File     : erlkafka_protocol.erl
 %%% Author   : Milind Parikh <milindparikh@gmail.com>
 %%%-------------------------------------------------------------------
--module(kafka_protocol).
+-module(erlkafka_protocol).
 -author('Milind Parikh <milindparikh@gmail.com>').
 
 %% Initial philosophy is derived from
@@ -20,7 +20,7 @@
 -export([offset_request/4]).
 -export([parse_offsets/1]).
 
--export([get_list_of_brokers/0]).
+-export([get_list_of_brokers/0, get_dynamic_list_of_brokers/0]).
 -export([get_list_of_broker_partitions/1]).
 
 -define(RQ_TYPE_PRODUCE, 0).
@@ -242,7 +242,7 @@ get_dynamic_list_of_broker_partitions(Topic) ->
                                          } | Acc4]
                                     end,
                                     [],
-                                    kafka_protocol:get_list_of_brokers())
+                                    get_list_of_brokers())
                         )
         )
     ),
@@ -251,9 +251,9 @@ get_dynamic_list_of_broker_partitions(Topic) ->
 get_num_partitions_topic_broker(Topic, Broker) ->
     NewTopic = binary_to_list(Topic),
     {ok, Conn} = ezk:start_connection(),
-    case ezk:get(Conn, get_path_for_broker_topics()++NewTopic++"/" ++ integer_to_list(Broker)) of
-        {ok, {X, _}} ->   NumPartitions = list_to_integer(binary_to_list(X));
-        {error, no_dir} -> NumPartitions = 0
+    NumPartitions = case ezk:get(Conn, get_path_for_broker_topics()++NewTopic++"/" ++ integer_to_list(Broker)) of
+        {ok, {X, _}} -> list_to_integer(binary_to_list(X));
+        {error, no_dir} -> 0
     end,
     ezk:end_connection(Conn, ""),
     NumPartitions.

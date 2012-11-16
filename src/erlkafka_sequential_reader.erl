@@ -1,8 +1,8 @@
 %%%-------------------------------------------------------------------
-%%% File     : kafka_sequential_reader.erl
+%%% File     : erlkafka_sequential_reader.erl
 %%% Author   : Milind Parikh <milindparikh@gmail.com>
 %%%-------------------------------------------------------------------
--module(kafka_sequential_reader).
+-module(erlkafka_sequential_reader).
 -behaviour(gen_server).
 
 -export([start_link/1, next_messages/1]).
@@ -25,7 +25,7 @@ init([Broker,  Topic, Partition, Offset]) ->
     {ok, #state{broker=Broker,topic=Topic, partition=Partition,offset=Offset}, 0}.
 
 handle_call(next_messages, _From, #state{broker=Broker,topic=Topic, partition=Partition,offset=Offset} = State) ->
-    Resp = kafka_simple_api:fetch(Broker, Topic, Partition, Offset),
+    Resp = erlkafka_simple_api:fetch(Broker, Topic, Partition, Offset),
     case Resp of
         {ok, []} ->
             {reply, Resp, State};

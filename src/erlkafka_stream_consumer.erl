@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%%% File     : kafka_stream_consumer_sup.erl
+%%% File     : erlkafka_stream_consumer_sup.erl
 %%% Author   : Milind Parikh <milindparikh@gmail.com>
 %%%-------------------------------------------------------------------
 
--module(kafka_stream_consumer).
+-module(erlkafka_stream_consumer).
 -behaviour(gen_server).
 
 -export([start_link/1, get_stream_function/0, get_terminate_function/0]).
@@ -47,7 +47,7 @@ handle_call(stream_messages, _From, #state{ksr_pid=KsrPid, count=Count, time=Tim
     try
         lists:foreach(
             fun(_X) ->
-                Resp = kafka_sequential_reader:next_messages(KsrPid),
+                Resp = erlkafka_sequential_reader:next_messages(KsrPid),
                 case Resp of
                     {ok, []} ->
                         throw(no_data);

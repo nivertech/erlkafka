@@ -1,8 +1,8 @@
 %%%-------------------------------------------------------------------
-%%% File     : kafka_server_sup.erl
+%%% File     : erlkafka_server_sup.erl
 %%% Author   : Milind Parikh <milindparikh@gmail.com>
 %%%-------------------------------------------------------------------
--module(kafka_server_sup).
+-module(erlkafka_server_sup).
 -author("Milind Parikh <milindparikh@gmail.com> [http://www.milindparikh.com]").
 -behaviour(supervisor).
 
@@ -33,7 +33,7 @@ start_link() ->
                     start_link(Brokers)
             end;
         {ok,true} ->
-            start_link(kafka_protocol:get_dynamic_list_of_brokers())
+            start_link(erlkafka_protocol:get_dynamic_list_of_brokers())
     end.
 
 start_link(Params) ->
@@ -69,11 +69,11 @@ init([Params]) ->
                 lists:map(
                     fun(X) ->
                         {Broker*BrokerPoolCount + X,
-                         {kafka_server, start_link, [[Host, Port]]},
+                         {erlkafka_server, start_link, [[Host, Port]]},
                          transient,
                          brutal_kill,
                          worker,
-                         [kafka_server]}
+                         [erlkafka_server]}
                     end,
                     lists:seq(1, BrokerPoolCount))
             end,

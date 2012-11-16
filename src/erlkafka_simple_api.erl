@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%%% File     : kafka_simple_api.erl
+%%% File     : erlkafka_simple_api.erl
 %%% Author   : Milind Parikh <milindparikh@gmail.com>
 %%%-------------------------------------------------------------------
 
--module(kafka_simple_api).
+-module(erlkafka_simple_api).
 -author('Milind Parikh <milindparikh@gmail.com>').
 
 -ifdef(TEST).
@@ -19,37 +19,39 @@
 %%%                         API FUNCTIONS
 %%%-------------------------------------------------------------------
 produce(Broker, Topic, Partition, Messages) ->
-    Req = kafka_protocol:produce_request (Topic, Partition, Messages),
+    Req = erlkafka_protocol:produce_request (Topic, Partition, Messages),
     call({Broker, request, Req}).  % a produce in Kafka 0.7 has no response
 
 multi_produce(Broker, TopicPartitionMessages) ->
-    Req = kafka_protocol:multi_produce_request(TopicPartitionMessages),
+    Req = erlkafka_protocol:multi_produce_request(TopicPartitionMessages),
     call({Broker, request, Req}). % a produce in Kafka 0.7 has no response
 
 fetch (Broker, Topic, Partition, Offset) ->
-    Req = kafka_protocol:fetch_request(Topic, Offset, Partition, ?MAX_MSG_SIZE),
+    Req = erlkafka_protocol:fetch_request(Topic, Offset, Partition, ?MAX_MSG_SIZE),
     call({Broker, request_with_response, Req}).
 
 multi_fetch(Broker, TopicPartitionOffsets) ->
-    Req = kafka_protocol:multi_fetch_request (TopicPartitionOffsets),
+    Req = erlkafka_protocol:multi_fetch_request (TopicPartitionOffsets),
     call({Broker, request_with_response, Req}).
 
 offset(Broker, Topic, Partition, Time, MaxNumberOfOffsets) ->
-    Req = kafka_protocol:offset_request(Topic, Partition, Time, MaxNumberOfOffsets),
+    Req = erlkafka_protocol:offset_request(Topic, Partition, Time, MaxNumberOfOffsets),
     call({Broker, request_with_response_offset, Req}).
 
 get_list_of_brokers() ->
-    kafka_protocol:get_list_of_brokers(
-        application:get_env(erlkafka_app, enable_autodiscovery),
-        application:get_env(erlkafka_app, kafka_brokers),
-        application:get_env(erlkafka_app, kafka_prefix)
+    %% wtf: this function exists with only 0 argument
+    erlkafka_protocol:get_list_of_brokers(
+%        application:get_env(erlkafka_app, enable_autodiscovery),
+%        application:get_env(erlkafka_app, kafka_brokers),
+%        application:get_env(erlkafka_app, kafka_prefix)
     ).
 
 get_list_of_broker_partitions(Topic) -> 
-    kafka_protocol:get_list_of_broker_partitions(
-        application:get_env(erlkafka_app, enable_autodiscovery),
-        application:get_env(erlkafka_app, kafka_brokers),
-        application:get_env(erlkafka_app, kafka_prefix),
+    %% wtf: this function exists with only 1 argument
+    erlkafka_protocol:get_list_of_broker_partitions(
+%        application:get_env(erlkafka_app, enable_autodiscovery),
+%        application:get_env(erlkafka_app, kafka_brokers),
+%        application:get_env(erlkafka_app, kafka_prefix),
         Topic
     ).
 
@@ -57,7 +59,7 @@ get_list_of_broker_partitions(Topic) ->
 %%%                         INTERNAL FUNCTIONS
 %%%-------------------------------------------------------------------
 call({Broker, request, Req}) -> 
-    case kafka_server_sup:get_random_broker_instance_from_pool(Broker) of
+    case erlkafka_server_sup:get_random_broker_instance_from_pool(Broker) of
         {error, _} ->
             {error, unable_to_get_broker_instance_from_pool};
         {BrokerInstancePid, _BrokerInstanceId} -> 
@@ -65,7 +67,7 @@ call({Broker, request, Req}) ->
     end;
 
 call({Broker, request_with_response_offset, Req}) ->
-    case kafka_server_sup:get_random_broker_instance_from_pool(Broker) of
+    case erlkafka_server_sup:get_random_broker_instance_from_pool(Broker) of
         {error, _} ->
             {error, unable_to_get_broker_instance_from_pool};
         {BrokerInstancePid,_BrokerInstanceId}  ->
@@ -73,7 +75,7 @@ call({Broker, request_with_response_offset, Req}) ->
     end;
 
 call({Broker, request_with_response, Req}) ->
-    case kafka_server_sup:get_random_broker_instance_from_pool(Broker) of
+    case erlkafka_server_sup:get_random_broker_instance_from_pool(Broker) of
         {error, _} ->
             {error, unable_to_get_broker_instance_from_pool};
         {BrokerInstancePid,_BrokerInstanceId}  ->

@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%%% File     : kafka_server.erl
+%%% File     : erlkafka_server.erl
 %%% Author   : Milind Parikh <milindparikh@gmail.com>
 %%%-------------------------------------------------------------------
 
--module(kafka_server).
+-module(erlkafka_server).
 -author('Milind Parikh <milindparikh@gmail.com>').
 -behaviour(gen_server).
 -include("erlkafka.hrl").
@@ -39,7 +39,7 @@ handle_call({request_with_response, Req}, _From, State) ->
             {reply, {ok, []}, State};
         {ok, <<L:32/integer, 0:16/integer>>} ->
             {ok, Data} = gen_tcp:recv(State#state.socket, L-2),
-            {Messages, Size} = kafka_protocol:parse_messages(Data),
+            {Messages, Size} = erlkafka_protocol:parse_messages(Data),
             {reply, {ok, {Messages, Size}}, State};
         {ok, B} ->
             {reply, {error, B}, State}
@@ -51,7 +51,7 @@ handle_call({request_with_response_offset, Req}, _From, State) ->
             {reply, {ok, []}, State};
         {ok, <<L:32/integer, 0:16/integer>>} ->
             {ok, Data} = gen_tcp:recv(State#state.socket, L-2),
-            Offsets = kafka_protocol:parse_offsets(Data),
+            Offsets = erlkafka_protocol:parse_offsets(Data),
             {reply, {ok, Offsets}, State};
         {ok, B} ->
             {reply, {error, B}, State}
