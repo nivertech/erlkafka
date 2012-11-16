@@ -84,7 +84,7 @@ init([Params]) ->
 %%%                         INTERNAL  FUNCTIONS
 %%%-------------------------------------------------------------------
 param(Name, Default)->
-    case application:get_env(erlkafka_app, Name) of
+    case application:get_env(erlkafka, Name) of
         {ok, Value} -> Value;
         _-> Default
     end.

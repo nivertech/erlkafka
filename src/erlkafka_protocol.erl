@@ -198,14 +198,14 @@ parse_offsets(<<NumOffsets:32/integer, Ds/binary>>) ->
 %%%                         API/BROKER FUNCTIONS
 %%%-------------------------------------------------------------------
 
-%% @ If enable_kafka_autodiscovery is enabled under application erlkafka_app
+%% @ If enable_kafka_autodiscovery is enabled under application erlkafka
 %%   Then looks for zookeeper based broker registry
 %%   If not, then looks under a static definition of kafka_brokers
 get_list_of_brokers() ->
-    case application:get_env(erlkafka_app, enable_kafka_autodiscovery) of
+    case application:get_env(erlkafka, enable_kafka_autodiscovery) of
         undefined -> [];
         {ok, false} ->
-            case application:get_env(erlkafka_app, kafka_brokers) of
+            case application:get_env(erlkafka, kafka_brokers) of
                    undefined -> [];
                    {ok, X} -> X
             end;
@@ -275,13 +275,13 @@ get_dynamic_list_of_brokers() ->
     ListBrokers.
 
 get_path_for_broker_ids() ->
-    case application:get_env(erlkafka_app, kafka_prefix) of
+    case application:get_env(erlkafka, kafka_prefix) of
         undefined -> "/brokers/ids";
         {ok, KafkaPrefix} -> KafkaPrefix++"/brokers/ids"
     end.
 
 get_path_for_broker_topics() ->
-    case application:get_env(erlkafka_app, kafka_prefix) of
+    case application:get_env(erlkafka, kafka_prefix) of
          undefined -> "/brokers/topics";
          {ok, KafkaPrefix} -> KafkaPrefix++"/brokers/topics"
     end.

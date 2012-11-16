@@ -41,17 +41,17 @@ offset(Broker, Topic, Partition, Time, MaxNumberOfOffsets) ->
 get_list_of_brokers() ->
     %% wtf: this function exists with only 0 argument
     erlkafka_protocol:get_list_of_brokers(
-%        application:get_env(erlkafka_app, enable_autodiscovery),
-%        application:get_env(erlkafka_app, kafka_brokers),
-%        application:get_env(erlkafka_app, kafka_prefix)
+%        application:get_env(erlkafka, enable_autodiscovery),
+%        application:get_env(erlkafka, kafka_brokers),
+%        application:get_env(erlkafka, kafka_prefix)
     ).
 
 get_list_of_broker_partitions(Topic) -> 
     %% wtf: this function exists with only 1 argument
     erlkafka_protocol:get_list_of_broker_partitions(
-%        application:get_env(erlkafka_app, enable_autodiscovery),
-%        application:get_env(erlkafka_app, kafka_brokers),
-%        application:get_env(erlkafka_app, kafka_prefix),
+%        application:get_env(erlkafka, enable_autodiscovery),
+%        application:get_env(erlkafka, kafka_brokers),
+%        application:get_env(erlkafka, kafka_prefix),
         Topic
     ).
 
