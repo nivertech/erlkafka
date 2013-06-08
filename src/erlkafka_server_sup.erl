@@ -6,66 +6,31 @@
 -author("Milind Parikh <milindparikh@gmail.com> [http://www.milindparikh.com]").
 -behaviour(supervisor).
 
--export([start_link/1, start_link/0,
-         get_ids/0,
-         get_random_broker_instance_from_pool/1
-        ]).
--export([init/1]).
+-export([
+    init/1,
+    start_link/0
+    ]).
+
+-export([
+    start_link/1,
+    get_ids/0,
+    get_random_broker_instance_from_pool/1
+    ]).
 
 -define(DEFAULT_POOL_COUNT, 5).
-
-
-%%%-------------------------------------------------------------------
-%%%                         API FUNCTIONS
-%%%-------------------------------------------------------------------
-
-start_link() ->
-    case application:get_env(erlkafka_app,enable_kafka_autodiscovery)  of
-        undefined ->
-            start_link([{0, '127.0.0.1', 9092}]);
-        {ok, false} ->
-            case application:get_env(erlkafka_app,kafka_brokers) of
-                undefined ->
-                    % This is default and if it does not work,
-                    % change the application env
-                    start_link([{0, '127.0.0.1', 9092}]);
-                {ok, Brokers} ->
-                    start_link(Brokers)
-            end;
-        {ok,true} ->
-            start_link(erlkafka_protocol:get_dynamic_list_of_brokers())
-    end.
-
-start_link(Params) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, [Params]).
-
-get_random_broker_instance_from_pool(Broker) ->
-    BrokerPoolCount = param(broker_pool_count, ?DEFAULT_POOL_COUNT),
-    Pids = get_ids(),
-    BrokerInstance = Broker*BrokerPoolCount + random:uniform(BrokerPoolCount),
-    lists:filter(
-            fun({Child, Id}) ->
-                Id =:= BrokerInstance andalso is_pid(Child)
-            end,
-            Pids).
-
-get_ids() ->
-    [{Child, Id}
-     || {Id, Child, _Type, _Modules} <- supervisor:which_children(?MODULE),
-        Child /= undefined, Id /= 0].
 
 %%%-------------------------------------------------------------------
 %%%                         SUPERVISOR CB FUNCTIONS
 %%%-------------------------------------------------------------------
 init([Params]) ->
     BrokerPoolCount = param(broker_pool_count, ?DEFAULT_POOL_COUNT),
-    RestartStrategy = {one_for_one, 10, 60*60}, % allowing 10 crashes per hour
+    RestartStrategy = {one_for_one, 0, 1},
     Children = lists:flatten(
         lists:map(
             fun({Broker, Host, Port}) ->
                 lists:map(
                     fun(X) ->
-                        {Broker*BrokerPoolCount + X,
+                        {Broker * BrokerPoolCount + X,
                          {erlkafka_server, start_link, [[Host, Port]]},
                          transient,
                          brutal_kill,
@@ -79,6 +44,31 @@ init([Params]) ->
     ),
     {ok, {RestartStrategy, Children}}.
 
+start_link() ->
+  start_link(kafka_protocol:get_list_of_brokers()).
+
+%%%-------------------------------------------------------------------
+%%%                         API FUNCTIONS
+%%%-------------------------------------------------------------------
+
+start_link(Params) ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [Params]).
+
+get_random_broker_instance_from_pool(Broker) ->
+    BrokerPoolCount = param(broker_pool_count, ?DEFAULT_POOL_COUNT),
+    Pids = get_ids(),
+    BrokerInstance = Broker * BrokerPoolCount +
+                    random:uniform(BrokerPoolCount),
+    lists:filter(
+            fun({Child, Id}) ->
+                Id =:= BrokerInstance andalso is_pid(Child)
+            end,
+            Pids).
+
+get_ids() ->
+    [{Child, Id} ||
+     {Id, Child, _Type, _Modules} <- supervisor:which_children(?MODULE),
+    Child /= undefined, Id /= 0].
 
 %%%-------------------------------------------------------------------
 %%%                         INTERNAL  FUNCTIONS
@@ -88,4 +78,3 @@ param(Name, Default)->
         {ok, Value} -> Value;
         _-> Default
     end.
-
