@@ -231,18 +231,21 @@ get_dynamic_list_of_broker_partitions(Topic) ->
                              Partitions)|Acc1]
             end,
             [],
-            lists:foldr(fun({BrokerId, NumPartitions}, Acc3) ->
-                            [{BrokerId, lists:seq(0, NumPartitions )} |Acc3]
-                        end,
-                        [],
-                        lists:foldr(fun({BrokerId, _, _ }, Acc4) ->
-                                        [{BrokerId,
-                                          get_num_partitions_topic_broker(Topic, BrokerId)
-                                         } | Acc4]
-                                    end,
-                                    [],
-                                    get_list_of_brokers())
-                        )
+            lists:foldr(
+                fun({BrokerId, NumPartitions}, Acc3) ->
+                    [{BrokerId, lists:seq(0, NumPartitions )} |Acc3]
+                end,
+                [],
+                lists:foldr(
+                    fun({BrokerId, _, _ }, Acc4) ->
+                        NumPartitions =
+                            get_num_partitions_topic_broker(Topic, BrokerId) - 1,
+                        [{BrokerId, NumPartitions} | Acc4]
+                    end,
+                    [],
+                    get_list_of_brokers()
+                )
+            )
         )
     ),
     DynList.
@@ -250,7 +253,9 @@ get_dynamic_list_of_broker_partitions(Topic) ->
 get_num_partitions_topic_broker(Topic, Broker) ->
     NewTopic = binary_to_list(Topic),
     {ok, Conn} = ezk:start_connection(),
-    NumPartitions = case ezk:get(Conn, get_path_for_broker_topics()++NewTopic++"/" ++ integer_to_list(Broker)) of
+    ZKPath = get_path_for_broker_topics()
+                ++ NewTopic ++ "/" ++ integer_to_list(Broker),
+    NumPartitions = case ezk:get(Conn, ZKPath) of
         {ok, {X, _}} -> list_to_integer(binary_to_list(X));
         {error, no_dir} -> 0
     end,
