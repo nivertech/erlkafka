@@ -23,7 +23,7 @@
   {applications, [kernel, stdlib, uuid, ezk]},
   {env, [
       {enable_kafka_autodiscovery, false},
-      {kafka_brokers, [{0, '127.0.1.1', 9092}]},
+      {kafka_brokers, [{0, '127.0.0.1', 9092}]},
       {kafka_prefix, ""}
   ]}
  ]}.
