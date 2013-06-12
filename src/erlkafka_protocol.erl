@@ -8,7 +8,8 @@
 %% Initial philosophy is derived from
 %%     https://github.com/wooga/kafka-erlang.git
 %% The kafka protocol is tested against kafka 0.7.1
-%% It requires ezk (https://github.com/infinipool/ezk.git) for dynamic discovery
+%% It requires ezk (https://github.com/infinipool/ezk.git) for dynamic
+%% discovery
 
 -export([fetch_request/3, fetch_request/4]).
 -export([multi_fetch_request/1]).
@@ -43,14 +44,14 @@
                     Offset::integer(),
                     MaxSize::integer()) -> binary().
 fetch_request(Topic, Offset, MaxSize) ->
-    fetch_request(Topic, Offset,0, MaxSize).
+    fetch_request(Topic, Offset, 0, MaxSize).
 
 %%  @doc The fetch request with partition also passed in
 -spec fetch_request(Topic::binary(),
                     Offset::integer(),
                     Partition::integer(),
                     MaxSize::integer()) -> binary().
-fetch_request(Topic, Offset,Partition, MaxSize) ->
+fetch_request(Topic, Offset, Partition, MaxSize) ->
     TopicSize = byte_size(Topic),
     RequestSize = 2 + 2 + TopicSize + 4 + 8 + 4,
     <<RequestSize:32/integer,
@@ -63,7 +64,7 @@ fetch_request(Topic, Offset,Partition, MaxSize) ->
 
 %%  @doc The multi-fetch request with partition also passed in
 %%       TopicPartitionOffset is {Topic, Partition, Offset, Maxsize}
-%%       [{"test", 0, 0, 100}, {"test2", 0,0, 200}]      
+%%       [{"test", 0, 0, 100}, {"test2", 0, 0, 200}]
 -spec multi_fetch_request(TopicPartitionOffsets::list()) -> binary().
 multi_fetch_request(TopicPartitionOffsets) ->
     TPOsSize = size_multi_fetch_tpos(TopicPartitionOffsets),
@@ -80,7 +81,7 @@ multi_fetch_request(TopicPartitionOffsets) ->
               Partition:32/integer,
               Offset:64/integer,
               MaxSize:32/integer,
-              Acc/binary >>
+              Acc/binary>>
         end,
         <<"">>,
         TopicPartitionOffsets),
@@ -100,9 +101,8 @@ parse_messages(Bs) ->
 produce_request(Topic,  Messages) ->
     produce_request(Topic, 0, 1, 0, Messages).
 
-%%  @doc The default produce request. 
+%%  @doc The default produce request.
 %%
-
 -spec produce_request(Topic::binary(),
                       Partition::integer(),
                       Messages::list(binary())) -> binary().
@@ -135,9 +135,10 @@ produce_request(Topic, Partition, Magic, Compression, Messages) ->
       ProducedMessages/binary>>.
 
 %%  @doc The multi-produce request with partition also passed in
-%%       [{<<"topic1">>,  0, [{Magic, Compression, <<"hi">>}, {Magic, Compression, <<"second hihi">>}]}, 
-%%       [{<<"topic2">>,  0, [{Magic, Compression, <<"hi2">>}, {Magic, Compression, <<"second hihi2">>}]}, 
-
+%%       [{<<"topic1">>,  0, [{Magic, Compression, <<"hi">>},
+%%                  {Magic, Compression, <<"second hihi">>}]},
+%%       [{<<"topic2">>,  0, [{Magic, Compression, <<"hi2">>},
+%%                  {Magic, Compression, <<"second hihi2">>}]}]
 -spec multi_produce_request(TopicPartitionMessages::list()) -> binary().
 multi_produce_request(TopicPartitionMessages) ->
     TPMSize = size_multi_produce_tpms(TopicPartitionMessages),
@@ -189,7 +190,7 @@ offset_request(Topic, Partition, Time, MaxNumberOfOffsets) ->
       MaxNumberOfOffsets:32/integer>>.
 
 
-%% @doc Parsing the results of the offset request 
+%% @doc Parsing the results of the offset request
 -spec parse_offsets(binary()) -> {[byte()]}.
 parse_offsets(<<NumOffsets:32/integer, Ds/binary>>) ->
     parse_offsets(Ds, [], NumOffsets).
@@ -213,10 +214,10 @@ get_list_of_brokers() ->
             get_dynamic_list_of_brokers()
     end.
 
-%% @ This is to get all possible broker-partition combinations hosting 
-%%   a specific topic. Currently only implemented through the 
-%%   auto discovery in zookeeper (and therefore requires ezk).      
-get_list_of_broker_partitions(Topic) -> 
+%% @ This is to get all possible broker-partition combinations hosting
+%%   a specific topic. Currently only implemented through the
+%%   auto discovery in zookeeper (and therefore requires ezk).
+get_list_of_broker_partitions(Topic) ->
     get_dynamic_list_of_broker_partitions(Topic).
 
 %%%-------------------------------------------------------------------
@@ -291,7 +292,7 @@ get_path_for_broker_topics() ->
          {ok, KafkaPrefix} -> KafkaPrefix++"/brokers/topics"
     end.
 
-produce_message (X, Magic, Compression) ->
+produce_message(X, Magic, Compression) ->
     MessageLength = 1+1+4+byte_size(X),
     CheckSum = erlang:crc32(X),
     <<MessageLength:32/integer,
@@ -300,7 +301,7 @@ produce_message (X, Magic, Compression) ->
       CheckSum:32/integer,
       X/binary>>.
 
-size_multi_fetch_tpos (TPOs) ->
+size_multi_fetch_tpos(TPOs) ->
     lists:foldl(fun({Topic, _, _, _},A) ->
                     2 + byte_size(Topic) + 4 + 8 + 4 + A
                 end,
@@ -309,9 +310,9 @@ size_multi_fetch_tpos (TPOs) ->
 
 size_multi_produce_tpms(TopicPartitionMessages) ->
     lists:foldl(fun({Topic, _, Messages},Acc1) ->
-                    2+byte_size(Topic) +  4+4 +
+                    2+byte_size(Topic) + 4 + 4 +
                     lists:foldl(fun({_Magic, _Compression, X}, Acc2) ->
-                                    4+1+1+4+byte_size(X) + Acc2
+                                    4 + 1 + 1 + 4 + byte_size(X) + Acc2
                                 end,
                                 0,
                                 Messages)
@@ -336,7 +337,7 @@ parse_offsets(<<Offset:8/integer, Rest/binary>>, Offsets, NumOffsets) ->
 
 parse_messages(<<>>, Acc, Size) ->
     {lists:reverse(Acc), Size};
-parse_messages(<<L:32/integer, _/binary>> = B, Acc, Size) when byte_size(B) >= L + 4->
+parse_messages(<<L:32/integer, _/binary>> = B, Acc, Size) when byte_size(B) >= L + 4 ->
     MsgLengthOfPayload = L -1 -1 -4 ,
     <<_:32/integer, _M:8/integer, _C:8/integer, _Check:32/integer,
       Msg:MsgLengthOfPayload/binary,
