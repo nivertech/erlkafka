@@ -1,5 +1,5 @@
 {application, erlkafka,
- [{vsn, "0.6.0"},
+ [{vsn, "0.6.1"},
   {modules, [
       erlkafka_app,
       erlkafka,
