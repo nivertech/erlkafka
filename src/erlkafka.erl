@@ -14,9 +14,9 @@
 uuid() ->
     uuid:to_string(uuid:get_v4()).
 
-get_kafka_stream_consumer(Broker, Topic, Partition, Offset) -> 
-    {A1, A2, A3} = now(),
-    random:seed(A1, A2, A3),
+get_kafka_stream_consumer(Broker, Topic, Partition, Offset) ->
+    {Mega, Sec, Micro} = now(),
+    random:seed(Mega, Sec, Micro),
     UuidKSR = uuid(),
     UuidKSC = uuid(),
     {ok, KsrPid} = supervisor:start_child(
@@ -33,7 +33,7 @@ get_kafka_stream_consumer(Broker, Topic, Partition, Offset) ->
          {UuidKSC,
           {erlkafka_stream_consumer, start_link, [KsrPid]},
           temporary,   % never restart
-          brutal_kill, 
+          brutal_kill,
           worker,
           [erlkafka_stream_consumer]}
      ),
