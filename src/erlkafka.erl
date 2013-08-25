@@ -12,7 +12,7 @@
 %%%                         API FUNCTIONS
 %%%-------------------------------------------------------------------
 uuid() ->
-    uuid:to_string(uuid:get_v4()).
+    uuid:to_string(uuid:uuid4()).
 
 get_kafka_stream_consumer(Broker, Topic, Partition, Offset) ->
     {Mega, Sec, Micro} = now(),
