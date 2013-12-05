@@ -63,7 +63,7 @@ fetch_request(Topic, Offset,Partition, MaxSize) ->
 
 %%  @doc The multi-fetch request with partition also passed in
 %%       TopicPartitionOffset is {Topic, Partition, Offset, Maxsize}
-%%       [{"test", 0, 0, 100}, {"test2", 0,0, 200}]      
+%%       [{"test", 0, 0, 100}, {"test2", 0,0, 200}]
 -spec multi_fetch_request(TopicPartitionOffsets::list()) -> binary().
 multi_fetch_request(TopicPartitionOffsets) ->
     TPOsSize = size_multi_fetch_tpos(TopicPartitionOffsets),
@@ -100,7 +100,7 @@ parse_messages(Bs) ->
 produce_request(Topic,  Messages) ->
     produce_request(Topic, 0, 1, 0, Messages).
 
-%%  @doc The default produce request. 
+%%  @doc The default produce request.
 %%
 
 -spec produce_request(Topic::binary(),
@@ -135,8 +135,8 @@ produce_request(Topic, Partition, Magic, Compression, Messages) ->
       ProducedMessages/binary>>.
 
 %%  @doc The multi-produce request with partition also passed in
-%%       [{<<"topic1">>,  0, [{Magic, Compression, <<"hi">>}, {Magic, Compression, <<"second hihi">>}]}, 
-%%       [{<<"topic2">>,  0, [{Magic, Compression, <<"hi2">>}, {Magic, Compression, <<"second hihi2">>}]}, 
+%%       [{<<"topic1">>,  0, [{Magic, Compression, <<"hi">>}, {Magic, Compression, <<"second hihi">>}]},
+%%       [{<<"topic2">>,  0, [{Magic, Compression, <<"hi2">>}, {Magic, Compression, <<"second hihi2">>}]},
 
 -spec multi_produce_request(TopicPartitionMessages::list()) -> binary().
 multi_produce_request(TopicPartitionMessages) ->
@@ -189,7 +189,7 @@ offset_request(Topic, Partition, Time, MaxNumberOfOffsets) ->
       MaxNumberOfOffsets:32/integer>>.
 
 
-%% @doc Parsing the results of the offset request 
+%% @doc Parsing the results of the offset request
 -spec parse_offsets(binary()) -> {[byte()]}.
 parse_offsets(<<NumOffsets:32/integer, Ds/binary>>) ->
     parse_offsets(Ds, [], NumOffsets).
@@ -213,10 +213,10 @@ get_list_of_brokers() ->
             get_dynamic_list_of_brokers()
     end.
 
-%% @ This is to get all possible broker-partition combinations hosting 
-%%   a specific topic. Currently only implemented through the 
-%%   auto discovery in zookeeper (and therefore requires ezk).      
-get_list_of_broker_partitions(Topic) -> 
+%% @ This is to get all possible broker-partition combinations hosting
+%%   a specific topic. Currently only implemented through the
+%%   auto discovery in zookeeper (and therefore requires ezk).
+get_list_of_broker_partitions(Topic) ->
     get_dynamic_list_of_broker_partitions(Topic).
 
 %%%-------------------------------------------------------------------
@@ -259,20 +259,16 @@ get_num_partitions_topic_broker(Topic, Broker) ->
 
 get_dynamic_list_of_brokers() ->
     {ok, Conn} = ezk:start_connection(),
-    {ok, RawListBrokers} = ezk:ls(Conn, get_path_for_broker_ids()),
-    ListBrokers = lists:foldr(
-        fun(X, Acc) ->
-            {ok, {B1, _}} = ezk:get(Conn, get_path_for_broker_ids() ++ "/" ++ X),
-            [{list_to_integer(binary_to_list(X)),
-              list_to_atom(lists:nth(2, string:tokens(binary_to_list(B1), ":"))),
-              list_to_integer(lists:nth(3, string:tokens(binary_to_list(B1), ":")))}
-             | Acc]
-        end,
-        [],
-        RawListBrokers
-    ),
+    {ok, RawListBrokers} = ezk:ls(Conn, "/brokers/ids"),
+
+    ParseBroker = fun(Id, {ok, {Json, _}}) ->
+      {Data} = jiffy:decode(Json),
+      {binary_to_list(Id), proplists:lookup(<<"host">>, Data), proplists:lookup(<<"port">>, Data)}
+    end,
+    Brokers =[ParseBroker(Id, ezk:get(Conn, "/brokers/ids/" ++ Id)) || Id <- RawListBrokers],
+
     ezk:end_connection(Conn, ""),
-    ListBrokers.
+    Brokers.
 
 get_path_for_broker_ids() ->
     case application:get_env(erlkafka, kafka_prefix) of

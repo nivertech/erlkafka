@@ -20,10 +20,10 @@
   ]},
   {registered, [erlkafka_client]},
   {mod, {erlkafka_app, []}},
-  {applications, [kernel, stdlib, crypto, uuid, ezk]},
+  {applications, [kernel, stdlib, crypto, ezk]},
   {env, [
       {enable_kafka_autodiscovery, false},
-      {kafka_brokers, [{0, '127.0.0.1', 9092}]},
+      {kafka_brokers, [{"test-kafka-one.local", 2181, 30000, 10000}, {"test-kafka-two.local", 2181, 30000, 10000}, {"test-kafka-three.local", 2181, 30000, 10000}]},
       {kafka_prefix, ""}
   ]}
  ]}.
