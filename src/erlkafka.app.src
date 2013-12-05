@@ -22,8 +22,7 @@
   {mod, {erlkafka_app, []}},
   {applications, [kernel, stdlib, crypto, ezk]},
   {env, [
-      {enable_kafka_autodiscovery, false},
-      {kafka_brokers, [{"test-kafka-one.local", 2181, 30000, 10000}, {"test-kafka-two.local", 2181, 30000, 10000}, {"test-kafka-three.local", 2181, 30000, 10000}]},
+      {enable_kafka_autodiscovery, true},
       {kafka_prefix, ""}
   ]}
  ]}.
