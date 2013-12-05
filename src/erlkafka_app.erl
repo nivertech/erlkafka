@@ -18,7 +18,7 @@ start() ->
 
 start(normal, _Args) ->
     ensure_started(crypto),
-    ensure_started(uuid),
+    %ensure_started(uuid),
     %%conditionally_start(ezk, enable_kafka_autodiscovery),
     %% this is misleading - should investigate why it's linking
     %%
