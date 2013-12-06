@@ -44,12 +44,12 @@ get_ids() ->
 %%%                         SUPERVISOR CB FUNCTIONS
 %%%-------------------------------------------------------------------
 init([Params]) ->
-    io:format("starting ~p with ~p", [?MODULE, Params]),
     BrokerPoolCount = param(broker_pool_count, ?DEFAULT_POOL_COUNT),
     RestartStrategy = {one_for_one, 10, 60*60}, % allowing 10 crashes per hour
     Children = lists:flatten(
         lists:map(
             fun({Broker, {Host, Port}}) ->
+                io:format("starting with ~p", [{Broker, {Host, Port}}]),
                 lists:map(
                     fun(X) ->
                         {Broker*BrokerPoolCount + X,
