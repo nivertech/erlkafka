@@ -263,7 +263,7 @@ get_dynamic_list_of_brokers() ->
 
     ParseBroker = fun(Id, {ok, {Json, _}}) ->
       {Data} = jiffy:decode(Json),
-      {list_to_integer(binary_to_list(Id)), {proplists:get_value(<<"host">>, Data), proplists:get_value(<<"port">>, Data)}}
+      {list_to_integer(binary_to_list(Id)), {binary_to_list(proplists:get_value(<<"host">>, Data)), proplists:get_value(<<"port">>, Data)}}
     end,
     Brokers =[ParseBroker(Id, ezk:get(Conn, "/brokers/ids/" ++ Id)) || Id <- RawListBrokers],
 

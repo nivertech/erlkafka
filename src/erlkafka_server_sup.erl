@@ -49,7 +49,7 @@ init([Params]) ->
     Children = lists:flatten(
         lists:map(
             fun({Broker, {Host, Port}}) ->
-                io:format("starting with ~p", [{Broker, {Host, Port}}]),
+                io:format("starting with ~p\n", [{Broker, {Host, Port}}]),
                 lists:map(
                     fun(X) ->
                         {Broker*BrokerPoolCount + X,
