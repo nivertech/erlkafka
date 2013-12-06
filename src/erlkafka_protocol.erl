@@ -13,6 +13,7 @@
 -export([fetch_request/3, fetch_request/4]).
 -export([multi_fetch_request/1]).
 -export([parse_messages/1]).
+-export([producer_request/3]).
 
 -export([produce_request/2, produce_request/3, produce_request/5]).
 -export([multi_produce_request/1]).
@@ -290,6 +291,66 @@ produce_message(X, Magic, Compression) ->
       Compression:8/integer,
       CheckSum:32/integer,
       X/binary>>.
+
+% Payloads = [{Topic, [{Partition, Payloads}]
+producer_request(Ack, Timeout, TopicsAndPartitionsAndPayloads) ->
+    TopicProducerRequests =
+    [topic_producer_request(Topic, PartitionsAndPayloads) || {Topic, PartitionsAndPayloads} <- TopicsAndPartitionsAndPayloads],
+    Payload = array_primitive(TopicProducerRequests),
+    << Ack:16/integer, Timeout:32/integer, Payload/binary >>.
+
+topic_producer_request(Topic, PartitionsAndPayloads) ->
+    PartitionProducerRequests =
+    [partition_producer_request(Partition, Payload) || {Partition, Payload} <- PartitionsAndPayloads],
+    Payload = array_primitive(PartitionProducerRequests),
+    << Topic/binary, Payload/binary >>.
+
+partition_producer_request(Partition, Payloads) ->
+    MessageSet = message_set(Payloads),
+    Size       = byte_size(MessageSet),
+    << Partition:32/integer, Size:32/integer, MessageSet/binary >>.
+
+message_set([]) ->
+    <<>>;
+message_set([Payload | PayloadsRest]) ->
+    Message          = message(Payload),
+    Size             = byte_size(Message),
+    Offset           = 0, % set by the server
+    MessageSet       = << Offset:64/integer, Size:32/integer, Message/binary >>,
+    MessagesSetRest =  message_set(PayloadsRest),
+    << MessagesSetRest/binary, MessageSet/binary >>.
+
+message(Data) ->
+    Magic       = 1,
+    Compression = 0,
+    Key         = bytes_primitive(<<>>),
+    Payload     = bytes_primitive(Data),
+    MsgBody     =
+    << Magic:8/integer,
+      Compression:8/integer,
+      Key/binary,
+      Payload/binary >>,
+    CheckSum    = erlang:crc32(MsgBody),
+    << CheckSum:32/integer, MsgBody/binary >>.
+
+bytes_primitive(<<>>) ->
+    << -1:32/integer >>;
+bytes_primitive(Data) ->
+    Size = byte_size(Data),
+    << Size:32/integer, Data/binary >>.
+
+array_primitive(Payloads) ->
+    Length = length(Payloads),
+    Payload = bin_join(Payloads),
+    << Length:32/integer, Payload/binary >>.
+
+bin_join([]) ->
+    <<>>;
+bin_join([Next|Rest]) ->
+    RestBin = bin_join(Rest),
+    << Next/bitstring, RestBin/bitstring >>.
+
+
 
 size_multi_fetch_tpos (TPOs) ->
     lists:foldl(fun({Topic, _, _, _},A) ->
