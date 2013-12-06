@@ -263,7 +263,7 @@ get_dynamic_list_of_brokers() ->
 
     ParseBroker = fun(Id, {ok, {Json, _}}) ->
       {Data} = jiffy:decode(Json),
-      {binary_to_list(Id), proplists:lookup(<<"host">>, Data), proplists:lookup(<<"port">>, Data)}
+      {binary_to_list(Id), {proplists:lookup(<<"host">>, Data), proplists:lookup(<<"port">>, Data)}}
     end,
     Brokers =[ParseBroker(Id, ezk:get(Conn, "/brokers/ids/" ++ Id)) || Id <- RawListBrokers],
 
@@ -282,7 +282,7 @@ get_path_for_broker_topics() ->
          {ok, KafkaPrefix} -> KafkaPrefix++"/brokers/topics"
     end.
 
-produce_message (X, Magic, Compression) ->
+produce_message(X, Magic, Compression) ->
     MessageLength = 1+1+4+byte_size(X),
     CheckSum = erlang:crc32(X),
     <<MessageLength:32/integer,
