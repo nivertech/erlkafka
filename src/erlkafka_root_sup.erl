@@ -20,13 +20,7 @@ init([]) ->
       permanent,
       infinity,
       supervisor,
-      [erlkafka_server_sup]},
-     {erlkafka_stream_consumer_sup,
-      {erlkafka_stream_consumer_sup, start_link,[]},
-      permanent,
-      infinity,
-      supervisor,
-      [erlkafka_stream_consumer_sup]}
+      [erlkafka_server_sup]}
     ],
     {ok, {RestartStrategy, Children}}.
 
