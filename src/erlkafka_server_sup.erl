@@ -62,7 +62,7 @@ init([Params]) ->
     RestartStrategy = {one_for_one, 10, 60*60}, % allowing 10 crashes per hour
     Children = lists:flatten(
         lists:map(
-            fun({Broker, Host, Port}) ->
+            fun({Broker, {Host, Port}}) ->
                 lists:map(
                     fun(X) ->
                         {Broker*BrokerPoolCount + X,
