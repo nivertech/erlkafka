@@ -5,4 +5,3 @@ get_dynamic_list_of_brokers	erlkafka_protocol.erl	/^            get_dynamic_list
 get_env	erlkafka_protocol.erl	/^    case application:get_env(erlkafka, enable_kafk/
 get_random_broker_instance_from_pool	erlkafka_simple_api.erl	/^    case erlkafka_server_sup:get_random_broker_ins/
 parse_messages	erlkafka_protocol.erl	/^parse_messages(<<L:32\/integer, _\/binary>> = B, A/
-start_link	erlkafka_server_sup.erl	/^                    start_link(Brokers)$/

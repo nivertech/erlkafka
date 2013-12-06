@@ -20,21 +20,7 @@
 %%%-------------------------------------------------------------------
 
 start_link() ->
-    case application:get_env(erlkafka_app,enable_kafka_autodiscovery)  of
-        undefined ->
-            start_link([{0, '127.0.0.1', 9092}]);
-        {ok, false} ->
-            case application:get_env(erlkafka_app,kafka_brokers) of
-                undefined ->
-                    % This is default and if it does not work,
-                    % change the application env
-                    start_link([{0, '127.0.0.1', 9092}]);
-                {ok, Brokers} ->
-                    start_link(Brokers)
-            end;
-        {ok,true} ->
-            start_link(erlkafka_protocol:get_dynamic_list_of_brokers())
-    end.
+    start_link(erlkafka_protocol:get_dynamic_list_of_brokers()).
 
 start_link(Params) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, [Params]).
@@ -58,6 +44,7 @@ get_ids() ->
 %%%                         SUPERVISOR CB FUNCTIONS
 %%%-------------------------------------------------------------------
 init([Params]) ->
+    io:format("starting ~p with ~p", [?MODULE, Params]),
     BrokerPoolCount = param(broker_pool_count, ?DEFAULT_POOL_COUNT),
     RestartStrategy = {one_for_one, 10, 60*60}, % allowing 10 crashes per hour
     Children = lists:flatten(
