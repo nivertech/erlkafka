@@ -13,7 +13,7 @@
 -export([fetch_request/3, fetch_request/4]).
 -export([multi_fetch_request/1]).
 -export([parse_messages/1]).
--export([producer_request/3]).
+-export([producer_request/4]).
 
 -export([produce_request/2, produce_request/3, produce_request/5]).
 -export([multi_produce_request/1]).
@@ -292,6 +292,17 @@ produce_message(X, Magic, Compression) ->
       CheckSum:32/integer,
       X/binary>>.
 
+
+producer_request(ClientId, Ack, Timeout, TopicsAndPartitionsAndPayloads) ->
+    ApiKey         = 0,
+    ApiVersion     = 0,
+    CorrelationId  = 0,
+    ClientIdEnc    = string_primitive(ClientId),
+    Payload        = producer_request(Ack, Timeout, TopicsAndPartitionsAndPayloads),
+    RequestPayload = << ApiKey:16/integer, ApiVersion:16/integer, CorrelationId:32/integer, ClientIdEnc/binary, Payload/binary >>,
+    RequestLength  = byte_size(RequestPayload),
+    << RequestLength:32/integer, RequestPayload/binary >>.
+
 % Payloads = [{Topic, [{Partition, Payloads}]
 producer_request(Ack, Timeout, TopicsAndPartitionsAndPayloads) ->
     TopicProducerRequests =
@@ -303,7 +314,8 @@ topic_producer_request(Topic, PartitionsAndPayloads) ->
     PartitionProducerRequests =
     [partition_producer_request(Partition, Payload) || {Partition, Payload} <- PartitionsAndPayloads],
     Payload = array_primitive(PartitionProducerRequests),
-    << Topic/binary, Payload/binary >>.
+    TopicEnc = string_primitive(Topic),
+    << TopicEnc/binary, Payload/binary >>.
 
 partition_producer_request(Partition, Payloads) ->
     MessageSet = message_set(Payloads),
@@ -321,7 +333,7 @@ message_set([Payload | PayloadsRest]) ->
     << MessagesSetRest/binary, MessageSet/binary >>.
 
 message(Data) ->
-    Magic       = 1,
+    Magic       = 0,
     Compression = 0,
     Key         = bytes_primitive(<<>>),
     Payload     = bytes_primitive(Data),
@@ -334,10 +346,14 @@ message(Data) ->
     << CheckSum:32/integer, MsgBody/binary >>.
 
 bytes_primitive(<<>>) ->
-    << -1:32/integer >>;
+    << -1:32/signed-integer >>;
 bytes_primitive(Data) ->
     Size = byte_size(Data),
-    << Size:32/integer, Data/binary >>.
+    << Size:32/signed-integer, Data/binary >>.
+
+string_primitive(Data) ->
+    Size = byte_size(Data),
+    << Size:16/signed-integer, Data/binary >>.
 
 array_primitive(Payloads) ->
     Length = length(Payloads),

@@ -28,19 +28,16 @@ start_link([Host, Port]) ->
 %%%-------------------------------------------------------------------
 
 init([Host, Port]) ->
+    io:format("Starting server with ~p.\n", [{Host, Port}]),
     {ok, Socket} = gen_tcp:connect(Host, Port,
                                    [binary, {active, false}, {packet, raw}]),
     {ok, #state{socket=Socket}, 0}.
 
 handle_call({request_with_response, Req}, _From, State) ->
     ok = gen_tcp:send(State#state.socket, Req),
-    case gen_tcp:recv(State#state.socket, 6) of
-        {ok, <<2:32/integer, 0:16/integer>>} ->
-            {reply, {ok, []}, State};
-        {ok, <<L:32/integer, 0:16/integer>>} ->
-            {ok, Data} = gen_tcp:recv(State#state.socket, L-2),
-            {Messages, Size} = erlkafka_protocol:parse_messages(Data),
-            {reply, {ok, {Messages, Size}}, State};
+    case gen_tcp:recv(State#state.socket, 0) of
+        {ok, << CorrelationId:32/integer, Payload/binary >>} ->
+            {reply, {ok, {CorrelationId, Payload}}, State};
         {ok, B} ->
             {reply, {error, B}, State}
     end;
