@@ -10,19 +10,7 @@
 %% The kafka protocol is tested against kafka 0.7.1
 %% It requires ezk (https://github.com/infinipool/ezk.git) for dynamic discovery
 
--export([fetch_request/3, fetch_request/4]).
--export([multi_fetch_request/1]).
--export([parse_messages/1]).
--export([producer_request/4]).
-
--export([produce_request/2, produce_request/3, produce_request/5]).
--export([multi_produce_request/1]).
-
--export([offset_request/4]).
--export([parse_offsets/1]).
-
--export([get_list_of_brokers/0, get_dynamic_list_of_brokers/0]).
--export([get_list_of_broker_partitions/1]).
+-compile([export_all]).
 
 -define(RQ_TYPE_PRODUCE, 0).
 -define(RQ_TYPE_FETCH, 1).
@@ -351,14 +339,33 @@ bytes_primitive(Data) ->
     Size = byte_size(Data),
     << Size:32/signed-integer, Data/binary >>.
 
+skim_bytes_primitive(<< -1:32/signed-integer, Rest/binary >>) ->
+    {<<>>, Rest};
+skim_bytes_primitive(<< Length:32/signed-integer, Data:Length/binary, Rest/binary >>) ->
+    {Data, Rest}.
+
+string_primitive(<<>>) ->
+    << -1:16/signed-integer >>;
 string_primitive(Data) ->
     Size = byte_size(Data),
     << Size:16/signed-integer, Data/binary >>.
 
+skim_string_primitive(<< -1:16/signed-integer, Rest/binary >>) ->
+    {<<>>, Rest};
+skim_string_primitive(<< Length:16/signed-integer, Data:Length/binary, Rest/binary >>) ->
+    {Data, Rest}.
+
 array_primitive(Payloads) ->
-    Length = length(Payloads),
+    Count   = length(Payloads),
     Payload = bin_join(Payloads),
-    << Length:32/integer, Payload/binary >>.
+    << Count:32/integer, Payload/binary >>.
+
+skim_array_primitive(SkimFun, << Count:32/integer, Rest/binary >>) ->
+    FoldFun = fun(_, {Acc, Bin}) ->
+            {Skim, R} = SkimFun(Bin),
+            {Acc ++ [Skim], R}
+    end,
+    lists:foldl(FoldFun, {[], Rest}, lists:seq(1, Count)).
 
 bin_join([]) ->
     <<>>;
@@ -366,6 +373,35 @@ bin_join([Next|Rest]) ->
     RestBin = bin_join(Rest),
     << Next/bitstring, RestBin/bitstring >>.
 
+
+parse_produce_response(<< CorrelationId:32/integer, Payload/binary >>) ->
+    ParseTopic   = fun(TopicBin) ->
+        {Topic, PartitionErrorOffsetsBin} = skim_string_primitive(TopicBin),
+        ParsePartitionErrorOffset =
+        fun(<<Partition:32/integer, ErrorCode:16/integer, Offset:64/integer, R/binary >>) ->
+            {{Partition, error_name(ErrorCode), Offset}, R}
+        end,
+        {PEOs, Rest} = skim_array_primitive(ParsePartitionErrorOffset, PartitionErrorOffsetsBin),
+        {{Topic, PEOs}, Rest}
+    end,
+
+    {Data, <<>>} = skim_array_primitive(ParseTopic, Payload),
+    {CorrelationId, Data}.
+
+error_name(0)   -> undefined;
+error_name(-1)  -> unknown_error;
+error_name(1)   -> offset_out_of_range_error;
+error_name(2)   -> invalid_message_error;
+error_name(3)   -> unknown_topic_or_partition_error;
+error_name(4)   -> invalid_message_size_error;
+error_name(5)   -> leader_not_available_error;
+error_name(6)   -> not_leader_for_partition_error;
+error_name(7)   -> request_timeout_error;
+error_name(8)   -> broker_not_available_error;
+error_name(9)   -> replica_not_available_error;
+error_name(10)  -> message_size_too_large_error;
+error_name(11)  -> stale_controller_epoch_error;
+error_name(12)  -> offset_metadata_too_large_error.
 
 
 size_multi_fetch_tpos (TPOs) ->
