@@ -33,29 +33,12 @@ init([Host, Port]) ->
                                    [binary, {active, false}, {packet, raw}]),
     {ok, #state{socket=Socket}, 0}.
 
-handle_call({request_with_response, Req}, _From, State) ->
-    ok = gen_tcp:send(State#state.socket, Req),
-    case gen_tcp:recv(State#state.socket, 0) of
-        {ok, << CorrelationId:32/integer, Payload/binary >>} ->
-            {reply, {ok, {CorrelationId, Payload}}, State};
-        {ok, B} ->
-            {reply, {error, B}, State}
-    end;
-handle_call({request_with_response_offset, Req}, _From, State) ->
-    ok = gen_tcp:send(State#state.socket, Req),
-    case gen_tcp:recv(State#state.socket, 6) of
-        {ok, <<2:32/integer, 0:16/integer>>} ->
-            {reply, {ok, []}, State};
-        {ok, <<L:32/integer, 0:16/integer>>} ->
-            {ok, Data} = gen_tcp:recv(State#state.socket, L-2),
-            Offsets = erlkafka_protocol:parse_offsets(Data),
-            {reply, {ok, Offsets}, State};
-        {ok, B} ->
-            {reply, {error, B}, State}
-    end;
-handle_call({request, Req}, _From, State) ->
-    ok = gen_tcp:send(State#state.socket, Req),
-    {reply, ok, State}.
+handle_call({produce, Req}, _From, State) ->
+    ok  = gen_tcp:send(State#state.socket, Req),
+    {ok, << Length:32/integer >>} = gen_tcp:recv(State#state.socket, 4),
+    {ok, ReplyBin} = gen_tcp:recv(State#state.socket, Length),
+    Reply = erlkafka_protocol:parse_produce_response(ReplyBin),
+    {reply, Reply, State}.
 
 handle_cast(stop_link, State) ->
     {stop, normal, State}.

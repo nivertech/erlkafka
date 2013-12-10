@@ -7,3 +7,5 @@
 *.swp
 erl_crash.dump
 
+tags
+*/tags
