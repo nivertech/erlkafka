@@ -306,23 +306,27 @@ topic_producer_request(Topic, PartitionsAndPayloads) ->
     << TopicEnc/binary, Payload/binary >>.
 
 partition_producer_request(Partition, Payloads) ->
-    MessageSet = message_set(Payloads),
-    Size       = byte_size(MessageSet),
+    InnerMessageSet           = message_set(Payloads),
+    {ok, InnerMessageSetCompressed} = snappy:compress(InnerMessageSet),
+    MessageSet                = message_set([InnerMessageSetCompressed], 2),
+    Size                      = byte_size(MessageSet),
     << Partition:32/integer, Size:32/integer, MessageSet/binary >>.
 
-message_set([]) ->
+message_set(Payloads) ->
+    message_set(Payloads, 0).
+
+message_set([], _) ->
     <<>>;
-message_set([Payload | PayloadsRest]) ->
-    Message          = message(Payload),
+message_set([Payload | PayloadsRest], Compression) ->
+    Message          = message(Payload, Compression),
     Size             = byte_size(Message),
     Offset           = 0, % set by the server
     MessageSet       = << Offset:64/integer, Size:32/integer, Message/binary >>,
     MessagesSetRest =  message_set(PayloadsRest),
     << MessagesSetRest/binary, MessageSet/binary >>.
 
-message(Data) ->
+message(Data, Compression) ->
     Magic       = 0,
-    Compression = 0,
     Key         = bytes_primitive(<<>>),
     Payload     = bytes_primitive(Data),
     MsgBody     =
