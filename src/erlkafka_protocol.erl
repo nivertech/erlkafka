@@ -385,8 +385,8 @@ parse_produce_response(<< CorrelationId:32/integer, Payload/binary >>) ->
         {{Topic, PEOs}, Rest}
     end,
 
-    {Data, Rest} = skim_array_primitive(ParseTopic, Payload),
-    {{CorrelationId, Data}, Rest}.
+    {Data, <<>>} = skim_array_primitive(ParseTopic, Payload),
+    {CorrelationId, Data}.
 
 error_name(0)   -> undefined;
 error_name(-1)  -> unknown_error;

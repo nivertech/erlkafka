@@ -12,7 +12,7 @@
         ]).
 -export([init/1]).
 
--define(DEFAULT_POOL_COUNT, 5).
+-define(DEFAULT_POOL_COUNT, 10).
 
 
 %%%-------------------------------------------------------------------
@@ -44,6 +44,7 @@ get_ids() ->
 %%%                         SUPERVISOR CB FUNCTIONS
 %%%-------------------------------------------------------------------
 init([Params]) ->
+    io:format("~p start params: ~p", [?MODULE, Params]),
     BrokerPoolCount = param(broker_pool_count, ?DEFAULT_POOL_COUNT),
     RestartStrategy = {one_for_one, 10, 60*60}, % allowing 10 crashes per hour
     Children = lists:flatten(

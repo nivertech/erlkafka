@@ -46,7 +46,7 @@ get_list_of_brokers() ->
 %        application:get_env(erlkafka, kafka_prefix)
     ).
 
-get_list_of_broker_partitions(Topic) -> 
+get_list_of_broker_partitions(Topic) ->
     %% wtf: this function exists with only 1 argument
     erlkafka_protocol:get_list_of_broker_partitions(
 %        application:get_env(erlkafka, enable_autodiscovery),
@@ -58,11 +58,11 @@ get_list_of_broker_partitions(Topic) ->
 %%%-------------------------------------------------------------------
 %%%                         INTERNAL FUNCTIONS
 %%%-------------------------------------------------------------------
-call({Broker, request, Req}) -> 
+call({Broker, request, Req}) ->
     case erlkafka_server_sup:get_random_broker_instance_from_pool(Broker) of
         [] ->
             {error, unable_to_get_broker_instance_from_pool};
-        [{BrokerInstancePid, _BrokerInstanceId}] -> 
+        [{BrokerInstancePid, _BrokerInstanceId}] ->
             gen_server:call(BrokerInstancePid, {request, Req})
     end;
 
@@ -121,7 +121,7 @@ fetch_test () ->
 multi_fetch_test() ->
     BrokerId = 0,
     TopicPartitionOffsets = [{<<"test">>, 0, 0, ?MAX_MSG_SIZE}, {<<"test2">>, 0,0, ?MAX_MSG_SIZE}],
-    multi_fetch(BrokerId,TopicPartitionOffsets). 
+    multi_fetch(BrokerId,TopicPartitionOffsets).
 
 
 offset_test() ->

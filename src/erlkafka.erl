@@ -6,11 +6,32 @@
 -author('Milind Parikh <milindparikh@gmail.com>').
 -include("erlkafka.hrl").
 
--export([get_kafka_stream_consumer/4, uuid/0]).
+-export([start/0, get_kafka_stream_consumer/4, uuid/0]).
 
 %%%-------------------------------------------------------------------
 %%%                         API FUNCTIONS
 %%%-------------------------------------------------------------------
+
+start() ->
+    ensure_started(crypto),
+    application:start(crypto),
+    application:start(sasl),
+    application:load(ezk),
+    % application:set_env(ezk, default_servers, [{"test-kafka-one.local", 2181, 30000, 10000}, {"test-kafka-two.local", 2181, 30000, 10000}, {"test-kafka-three.local", 2181, 30000, 10000}]),
+    application:set_env(ezk, default_servers, [{"localhost", 2181, 30000, 10000}]),
+    application:start(ezk),
+    application:start(erlkafka),
+    ballermann:balance(erlkafka_producer_sup, producer_pool).
+
+%% Internal functions
+ensure_started(App) ->
+    case application:start(App) of
+        ok ->
+            ok;
+        {error, {already_started, App}} ->
+            ok
+    end.
+
 uuid() ->
     uuid:to_string(uuid:uuid4()).
 

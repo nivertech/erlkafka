@@ -16,11 +16,23 @@ init([]) ->
     RestartStrategy = {one_for_one, 1, 60*60}, % You get a second chance!
     Children = [
      {erlkafka_server_sup,
-      {erlkafka_server_sup, start_link,[]},
+      {erlkafka_server_sup, start_link, []},
       permanent,
       infinity,
       supervisor,
-      [erlkafka_server_sup]}
+      [erlkafka_server_sup]},
+     {erlkafka_producer_sup,
+      {erlkafka_producer_sup, start_link, [10]},
+      permanent,
+      infinity,
+      supervisor,
+      [erlkafka_producer_sup]},
+     {ballermann_sup,
+      {ballermann_sup, start_link,[erlkafka_producer_sup, producer_pool]},
+      permanent,
+      infinity,
+      supervisor,
+      [erlkafka_producer_sup]}
     ],
     {ok, {RestartStrategy, Children}}.
 
