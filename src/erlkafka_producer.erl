@@ -7,7 +7,7 @@
 %               [[{{<<"test">>,0},0}]]   [{<<"test">>,[0,1]}]     [{{<<"test">>, 0}, [<<"msg1">>, <<"msg2">>]}]
 -record(state, {leaders_by_topic_partitions, partitions_by_topic, buffer, buffer_size}).
 
--export([add/2, send/2]).
+-export([add/2, send/4]).
 
 %% Public API
 start_link() ->
@@ -90,15 +90,27 @@ maybe_send(State = #state{ leaders_by_topic_partitions = LeadersByTopicPartition
         orddict:store(Broker, BrokerBucketNew, Acc)
     end,
     SendBuffer = lists:foldl(FoldFun, orddict:new(), dict:to_list(Buffer)),
-    % [spawn(?MODULE, send, [Broker, Data]) || {Broker, Data} <- SendBuffer],
-    [send(Broker, Data) || {Broker, Data} <- SendBuffer],
+    Ref = make_ref(),
+    [spawn(?MODULE, send, [Broker, Data, self(), Ref]) || {Broker, Data} <- SendBuffer],
+    Receive = fun(RefToReceive) ->
+            receive
+                {ok, RefToReceive} ->
+                    io:format(".", []),
+                    ok
+            after
+                10000 -> throw(timeout)
+            end
+    end,
+    [Receive(Ref) || _ <- SendBuffer],
+    io:format("*", []),
+    % [send(Broker, Data) || {Broker, Data} <- SendBuffer],
     State#state{ buffer = dict:new(), buffer_size = 0 }.
 
-send(Broker, Data) ->
+send(Broker, Data, From, Ref) ->
     [{Server, _}] = erlkafka_server_sup:get_random_broker_instance_from_pool(Broker),
+    %io:format("Sending to Broker ~p :~p\n", [Broker, Data]),
     ProduceRequest = erlkafka_protocol:producer_request(<<"iId">>, -1, 3000, Data),
     Reply = gen_server:call(Server, {produce, ProduceRequest}),
-    io:format(".", []),
     case Reply of
         {_CorrelationId, TopicPartionErrors} ->
             PartitionErrorWithoutError = fun
@@ -116,7 +128,8 @@ send(Broker, Data) ->
             lists:foreach(CheckTopic, TopicPartionErrors);
         _ ->
             io:format("Unexpected Reply: ~p\n", [Reply])
-    end.
+    end,
+    From ! {ok, Ref}.
 
 
 any_partition(Topic, PartitionsByTopic) ->
