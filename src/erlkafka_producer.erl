@@ -100,7 +100,7 @@ send(Broker, Data) ->
     ProduceRequest = erlkafka_protocol:producer_request(<<"iId">>, -1, 3000, Data),
     Reply = gen_server:call(Server, {produce, ProduceRequest}),
     case Reply of
-        {Broker, TopicPartionErrors} ->
+        {_CorrelationId, TopicPartionErrors} ->
             PartitionErrorWithoutError = fun
                 ({_, undefined, _}) -> true;
                 (_)                 -> false
