@@ -2,13 +2,16 @@
 
 -compile([export_all]).
 
-from_file(Topic, FN, Count) ->
+from_file(Topic, FN, Count) when is_binary(Topic) ->
+    from_file([Topic], FN, Count);
+
+from_file(Topics, FN, Count) ->
     StartTime = now(),
     {ok, File} = file:open(FN, [read, binary]),
     LineCount = round(Count / 100.0),
     {_, _, Lines} = lists:foldl(fun next_line/2, {FN, File, []}, lists:seq(1, LineCount)),
     file:close(File),
-    [[gen_server:call(ballermann:pid(producer_pool), {add, Topic, L})||L<-Lines]||_<-lists:seq(1, 100)],
+    [[gen_server:call(ballermann:pid(producer_pool), {add, one_of(Topics), L})||L<-Lines]||_<-lists:seq(1, 100)],
     Sync = fun(Pid) -> gen_server:call(Pid, sync) end,
     ballermann:apply_within(producer_pool, {erlang, list_to_atom, ["sync"]}, Sync),
     Elapsed = timer:now_diff(now(), StartTime) / 1000000,
@@ -24,4 +27,5 @@ next_line(_, {FN, F, Acc}) ->
         {FN, F, [Data | Acc]}
   end.
 
-
+one_of(List) ->
+    lists:nth(random:uniform(length(List)), List).
