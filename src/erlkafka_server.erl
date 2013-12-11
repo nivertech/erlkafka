@@ -34,9 +34,11 @@ init([Host, Port]) ->
     {ok, #state{socket=Socket}, 0}.
 
 handle_call({produce, Req}, _From, State) ->
+    TimeBefore = now(),
     ok  = gen_tcp:send(State#state.socket, Req),
     {ok, << Length:32/integer >>} = gen_tcp:recv(State#state.socket, 4),
     {ok, ReplyBin} = gen_tcp:recv(State#state.socket, Length),
+    io:format("ReqTime: ~p\n", [timer:now_diff(now() - TimeBefore) / 1000.0]),
     Reply = erlkafka_protocol:parse_produce_response(ReplyBin),
     {reply, Reply, State}.
 
