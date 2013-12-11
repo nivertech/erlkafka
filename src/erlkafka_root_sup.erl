@@ -22,7 +22,7 @@ init([]) ->
       supervisor,
       [erlkafka_server_sup]},
      {erlkafka_producer_sup,
-      {erlkafka_producer_sup, start_link, [10]},
+      {erlkafka_producer_sup, start_link, [20]},
       permanent,
       infinity,
       supervisor,

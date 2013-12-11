@@ -1,11 +1,12 @@
 all	erlkafka_producer.erl	/^                case lists:all(PartitionErrorWitho/
-call	erlkafka_simple_api.erl	/^            gen_server:call(BrokerInstancePid, {re/
+call	erlkafka_profile.erl	/^    Sync = fun(Pid) -> gen_server:call(Pid, sync) /
 ezk	erlkafka_protocol.erl	/^%% It requires ezk (https:\/\/github.com\/infinipo/
 fetch	erlkafka_producer.erl	/^      orddict:fetch(<<"leader">>, Dict)$/
 find	erlkafka_producer.erl	/^        BrokerBucket = case orddict:find(Broker, A/
 get	erlkafka_protocol.erl	/^    NumPartitions = case ezk:get(Conn, get_path_fo/
 get_dynamic_list_of_brokers	erlkafka_protocol.erl	/^            get_dynamic_list_of_brokers()$/
 get_env	erlkafka_protocol.erl	/^    case application:get_env(erlkafka, enable_kafk/
+get_line	erlkafka_profile.erl	/^  case io:get_line(F, "") of$/
 get_random_broker_instance_from_pool	erlkafka_simple_api.erl	/^    case erlkafka_server_sup:get_random_broker_ins/
 maybe_send	erlkafka_producer.erl	/^maybe_send(State = #state{ buffer_size = BufferSiz/
 start	erlkafka.erl	/^    case application:start(App) of$/

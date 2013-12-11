@@ -12,7 +12,7 @@
         ]).
 -export([init/1]).
 
--define(DEFAULT_POOL_COUNT, 10).
+-define(DEFAULT_POOL_COUNT, 20).
 
 
 %%%-------------------------------------------------------------------

@@ -53,6 +53,11 @@ handle_call({add, Topic, Message}, _From,
     BufferSizeNew = BufferSize + 1,
     StateNew      = State#state{ buffer = BufferNew, buffer_size = BufferSizeNew },
     StateSend     = maybe_send(StateNew),
+    {reply, ok, StateSend};
+
+handle_call(sync, _From, State) ->
+    % HACK ALERT!
+    StateSend    = maybe_send(State#state{ buffer_size = 1000000 }),
     {reply, ok, StateSend}.
 
 handle_cast(_Msg, State) ->
