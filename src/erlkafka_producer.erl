@@ -94,7 +94,7 @@ maybe_send(State = #state{ leaders_by_topic_partitions = LeadersByTopicPartition
     State#state{ buffer = dict:new(), buffer_size = 0 }.
 
 send(Broker, Data) ->
-    [{Server, _}] = erlkafka_server_sup:get_random_broker_instance_from_pool(0),
+    [{Server, _}] = erlkafka_server_sup:get_random_broker_instance_from_pool(Broker),
     %io:format("Sending to Broker ~p :~p\n", [Broker, Data]),
     io:format(".", []),
     ProduceRequest = erlkafka_protocol:producer_request(<<"iId">>, -1, 3000, Data),
