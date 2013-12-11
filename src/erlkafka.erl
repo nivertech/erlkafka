@@ -17,8 +17,8 @@ start() ->
     application:start(crypto),
     application:start(sasl),
     application:load(ezk),
-    % application:set_env(ezk, default_servers, [{"test-kafka-one.local", 2181, 30000, 10000}, {"test-kafka-two.local", 2181, 30000, 10000}, {"test-kafka-three.local", 2181, 30000, 10000}]),
-    application:set_env(ezk, default_servers, [{"localhost", 2181, 30000, 10000}]),
+    application:set_env(ezk, default_servers, [{"test-kafka-one.local", 2181, 30000, 10000}, {"test-kafka-two.local", 2181, 30000, 10000}, {"test-kafka-three.local", 2181, 30000, 10000}]),
+    %application:set_env(ezk, default_servers, [{"localhost", 2181, 30000, 10000}]),
     application:start(ezk),
     application:start(erlkafka),
     ballermann:balance(erlkafka_producer_sup, producer_pool).

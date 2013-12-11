@@ -95,10 +95,9 @@ maybe_send(State = #state{ leaders_by_topic_partitions = LeadersByTopicPartition
 
 send(Broker, Data) ->
     [{Server, _}] = erlkafka_server_sup:get_random_broker_instance_from_pool(Broker),
-    %io:format("Sending to Broker ~p :~p\n", [Broker, Data]),
-    io:format(".", []),
     ProduceRequest = erlkafka_protocol:producer_request(<<"iId">>, -1, 3000, Data),
     Reply = gen_server:call(Server, {produce, ProduceRequest}),
+    io:format(".", []),
     case Reply of
         {_CorrelationId, TopicPartionErrors} ->
             PartitionErrorWithoutError = fun
