@@ -5,7 +5,7 @@
 
 
 %               [[{{<<"test">>,0},0}]]   [{<<"test">>,[0,1]}]     [{{<<"test">>, 0}, [<<"msg1">>, <<"msg2">>]}]
--record(state, {leaders_by_topic_partitions, partitions_by_topic, buffer, buffer_size}).
+-record(state, {leaders_by_topic_partitions, partitions_by_topic, buffer, buffer_size, buffer_limit}).
 
 -export([add/2, send/4]).
 
@@ -20,6 +20,7 @@ add(Topic, Message) ->
 %% Callbacks
 
 init([]) ->
+    random:seed(now()),
     {ok, Conn} = ezk:start_connection(),
     {ok, Topics} =  ezk:ls(Conn, "/brokers/topics"),
 
@@ -35,15 +36,16 @@ init([]) ->
         orddict:from_list([{T, orddict:from_list([ {list_to_integer(binary_to_list(P)), PartitionLeader(T, P)} || P <- Partitions(T)])} || T <- Topics]),
     LeadersByTopicPartition =
         orddict:from_list(lists:flatten([[{{T, P}, L}||{P, L} <- Ps]|| {T, Ps} <- PartitionLeaders])),
-    io:format("LeadersByTopicPartition ~p\n", [LeadersByTopicPartition]),
     PartitionsByTopic       =
         orddict:from_list(lists:foldl(fun({T, PLs}, Acc) -> [{T, [P||{P,_L}<-PLs]}|Acc] end, [], PartitionLeaders)),
-
+    BufferLimit = 2000 + random:uniform(100),
+    io:format("BufferLimit ~p\n", [BufferLimit]),
     {ok, #state{
             leaders_by_topic_partitions = LeadersByTopicPartition,
             partitions_by_topic         = PartitionsByTopic,
             buffer                      = dict:new(),
-            buffer_size                 = 0}}.
+            buffer_size                 = 0,
+            buffer_limit                = BufferLimit}}.
 
 handle_call({add, Topic, Message}, _From,
             State = #state{ partitions_by_topic = PartitionsByTopic, buffer = Buffer, buffer_size = BufferSize }) ->
@@ -72,7 +74,7 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-maybe_send(State = #state{ buffer_size = BufferSize}) when BufferSize < 2000 ->
+maybe_send(State = #state{ buffer_size = BufferSize, buffer_limit = BufferLimit }) when BufferSize < BufferLimit ->
     State;
 maybe_send(State = #state{ leaders_by_topic_partitions = LeadersByTopicPartition, buffer = Buffer }) ->
     FoldFun = fun({{T, P}, Msgs}, Acc) ->
