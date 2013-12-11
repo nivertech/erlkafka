@@ -90,7 +90,8 @@ maybe_send(State = #state{ leaders_by_topic_partitions = LeadersByTopicPartition
         orddict:store(Broker, BrokerBucketNew, Acc)
     end,
     SendBuffer = lists:foldl(FoldFun, orddict:new(), dict:to_list(Buffer)),
-    [spawn(?MODULE, send, [Broker, Data]) || {Broker, Data} <- SendBuffer],
+    % [spawn(?MODULE, send, [Broker, Data]) || {Broker, Data} <- SendBuffer],
+    [send(Broker, Data) || {Broker, Data} <- SendBuffer],
     State#state{ buffer = dict:new(), buffer_size = 0 }.
 
 send(Broker, Data) ->
