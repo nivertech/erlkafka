@@ -21,31 +21,13 @@ add(Topic, Message) ->
 
 init([]) ->
     random:seed(now()),
-    {ok, Conn} = ezk:start_connection(),
-    {ok, Topics} =  ezk:ls(Conn, "/brokers/topics"),
-
-    Partitions = fun(Topic) -> {ok, Pt} = ezk:ls(Conn, "/brokers/topics/" ++ binary_to_list(Topic) ++ "/partitions"), Pt end,
-
-    PartitionLeader = fun(Topic, Partition) ->
-      {ok, {State, _}} = ezk:get(Conn, "/brokers/topics/" ++ binary_to_list(Topic) ++ "/partitions/" ++ binary_to_list(Partition) ++ "/state"),
-      {Dict} = jiffy:decode(State),
-      orddict:fetch(<<"leader">>, Dict)
-    end,
-
-    PartitionLeaders        =
-        orddict:from_list([{T, orddict:from_list([ {list_to_integer(binary_to_list(P)), PartitionLeader(T, P)} || P <- Partitions(T)])} || T <- Topics]),
-    LeadersByTopicPartition =
-        orddict:from_list(lists:flatten([[{{T, P}, L}||{P, L} <- Ps]|| {T, Ps} <- PartitionLeaders])),
-    PartitionsByTopic       =
-        orddict:from_list(lists:foldl(fun({T, PLs}, Acc) -> [{T, [P||{P,_L}<-PLs]}|Acc] end, [], PartitionLeaders)),
     BufferLimit = 2000 + random:uniform(100),
     io:format("BufferLimit ~p\n", [BufferLimit]),
-    {ok, #state{
-            leaders_by_topic_partitions = LeadersByTopicPartition,
-            partitions_by_topic         = PartitionsByTopic,
+    StateNew = get_leader_by_topic_partitions(#state{
             buffer                      = dict:new(),
             buffer_size                 = 0,
-            buffer_limit                = BufferLimit}}.
+            buffer_limit                = BufferLimit}),
+    {ok, StateNew}.
 
 handle_call({add, Topic, Message}, _From,
             State = #state{ partitions_by_topic = PartitionsByTopic, buffer = Buffer, buffer_size = BufferSize }) ->
@@ -71,6 +53,26 @@ handle_info(_Info, State) ->
 terminate(_Reason, _State) ->
     ok.
 
+get_leader_by_topic_partitions(State) ->
+    {ok, Conn} = ezk:start_connection(),
+    {ok, Topics} =  ezk:ls(Conn, "/brokers/topics"),
+
+    Partitions = fun(Topic) -> {ok, Pt} = ezk:ls(Conn, "/brokers/topics/" ++ binary_to_list(Topic) ++ "/partitions"), Pt end,
+
+    PartitionLeader = fun(Topic, Partition) ->
+      {ok, {TopicState, _}} = ezk:get(Conn, "/brokers/topics/" ++ binary_to_list(Topic) ++ "/partitions/" ++ binary_to_list(Partition) ++ "/state"),
+      {Dict} = jiffy:decode(TopicState),
+      orddict:fetch(<<"leader">>, Dict)
+    end,
+
+    PartitionLeaders        =
+        orddict:from_list([{T, orddict:from_list([ {list_to_integer(binary_to_list(P)), PartitionLeader(T, P)} || P <- Partitions(T)])} || T <- Topics]),
+    LeadersByTopicPartition =
+        orddict:from_list(lists:flatten([[{{T, P}, L}||{P, L} <- Ps]|| {T, Ps} <- PartitionLeaders])),
+    PartitionsByTopic       =
+        orddict:from_list(lists:foldl(fun({T, PLs}, Acc) -> [{T, [P||{P,_L}<-PLs]}|Acc] end, [], PartitionLeaders)),
+    State#state{ leaders_by_topic_partitions = LeadersByTopicPartition, partitions_by_topic = PartitionsByTopic}.
+
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
@@ -94,26 +96,37 @@ maybe_send(State = #state{ leaders_by_topic_partitions = LeadersByTopicPartition
     SendBuffer = lists:foldl(FoldFun, orddict:new(), dict:to_list(Buffer)),
     Ref = make_ref(),
     [spawn(?MODULE, send, [Broker, Data, self(), Ref]) || {Broker, Data} <- SendBuffer],
-    Receive = fun(RefToReceive) ->
+    Receive = fun(RefToReceive, Failure) ->
             receive
                 {ok, RefToReceive} ->
                     io:format(".", []),
-                    ok
+                    Failure;
+                {error, Error} ->
+                    io:format("Got Error ~p.", [Error]),
+                    true
             after
-                10000 -> throw(timeout)
+                10000 ->
+                    io:format("Timeout.", [])
             end
     end,
-    [Receive(Ref) || _ <- SendBuffer],
+    % we are not detecting what data got lost, just that we have failures
+    Failure = lists:foldl(Receive(Ref), false, SendBuffer),
     io:format("*", []),
     % [send(Broker, Data) || {Broker, Data} <- SendBuffer],
-    State#state{ buffer = dict:new(), buffer_size = 0 }.
+    StateReset = State#state{ buffer = dict:new(), buffer_size = 0 },
+    case Failure of
+        false -> StateReset;
+        true  -> get_leader_by_topic_partitions(StateReset)
+    end.
 
 send(Broker, Data, From, Ref) ->
     [{Server, _}] = erlkafka_server_sup:get_random_broker_instance_from_pool(Broker),
     %io:format("Sending to Broker ~p :~p\n", [Broker, Data]),
     ProduceRequest = erlkafka_protocol:producer_request(<<"iId">>, -1, 3000, Data),
-    Reply = gen_server:call(Server, {produce, ProduceRequest}),
-    case Reply of
+    ReplyFromServer = gen_server:call(Server, {produce, ProduceRequest}),
+    Reply = case ReplyFromServer of
+        {error, closed} ->
+            {error, closed};
         {_CorrelationId, TopicPartionErrors} ->
             PartitionErrorWithoutError = fun
                 ({_, undefined, _}) -> true;
@@ -122,16 +135,22 @@ send(Broker, Data, From, Ref) ->
             CheckTopic = fun({Topic, PartitionErrors}) ->
                 case lists:all(PartitionErrorWithoutError, PartitionErrors) of
                     true ->
-                        noop;
+                        true;
                     false ->
-                        io:format("Error for topic ~p: ~p\n", [Topic, PartitionErrors])
+                        io:format("Error for topic ~p: ~p\n", [Topic, PartitionErrors]),
+                        {error, {Topic, PartitionErrors}}
                 end
             end,
-            lists:foreach(CheckTopic, TopicPartionErrors);
+            MaybeErrors = lists:map(CheckTopic, TopicPartionErrors),
+            case lists:all(fun(V) -> V =:= true end, MaybeErrors) of
+                true  -> ok;
+                false -> {error, MaybeErrors}
+            end;
         _ ->
-            io:format("Unexpected Reply: ~p\n", [Reply])
+            io:format("Unexpected Reply: ~p\n", [ReplyFromServer]),
+            {error, {unexpected_message, ReplyFromServer}}
     end,
-    From ! {ok, Ref}.
+    From ! {Ref, Reply}.
 
 
 any_partition(Topic, PartitionsByTopic) ->

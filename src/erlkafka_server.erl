@@ -38,11 +38,17 @@ handle_call({produce, Req}, _From, State) ->
     ok  = gen_tcp:send(State#state.socket, Req),
     %io:format("SendTime: ~p\n", [timer:now_diff(now(), TimeBefore) / 1000.0]),
     TimeBeforeRec = now(),
-    {ok, << Length:32/integer >>} = gen_tcp:recv(State#state.socket, 4),
-    {ok, ReplyBin} = gen_tcp:recv(State#state.socket, Length),
-    %io:format("RecTime: ~p\n", [timer:now_diff(now(), TimeBeforeRec) / 1000.0]),
-    %io:format("ReqTime: ~p\n", [timer:now_diff(now(), TimeBefore) / 1000.0]),
-    Reply = erlkafka_protocol:parse_produce_response(ReplyBin),
+    Reply = case gen_tcp:recv(State#state.socket, 4) of
+        {error, closed} -> {error, closed};
+        {ok, << Length:32/integer >>} ->
+            case gen_tcp:recv(State#state.socket, Length) of
+                {error, closed} -> {error, closed};
+                {ok, ReplyBin}  ->
+                    %io:format("RecTime: ~p\n", [timer:now_diff(now(), TimeBeforeRec) / 1000.0]),
+                    %io:format("ReqTime: ~p\n", [timer:now_diff(now(), TimeBefore) / 1000.0]),
+                    erlkafka_protocol:parse_produce_response(ReplyBin)
+            end
+    end,
     {reply, Reply, State}.
 
 handle_cast(stop_link, State) ->
