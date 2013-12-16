@@ -34,21 +34,25 @@ init([Host, Port]) ->
     {ok, #state{socket=Socket}, 0}.
 
 handle_call({produce, Req}, _From, State) ->
-    TimeBefore = now(),
-    ok  = gen_tcp:send(State#state.socket, Req),
-    %io:format("SendTime: ~p\n", [timer:now_diff(now(), TimeBefore) / 1000.0]),
-    TimeBeforeRec = now(),
-    Reply = case gen_tcp:recv(State#state.socket, 4) of
+    % TimeBefore = now(),
+    Reply =
+    case gen_tcp:send(State#state.socket, Req) of
         {error, closed} -> {error, closed};
-        {ok, << Length:32/integer >>} ->
-            case gen_tcp:recv(State#state.socket, Length) of
+        ok              ->
+            % io:format("SendTime: ~p\n", [timer:now_diff(now(), TimeBefore) / 1000.0]),
+            % TimeBeforeRec = now(),
+            case gen_tcp:recv(State#state.socket, 4) of
                 {error, closed} -> {error, closed};
-                {ok, ReplyBin}  ->
-                    %io:format("RecTime: ~p\n", [timer:now_diff(now(), TimeBeforeRec) / 1000.0]),
-                    %io:format("ReqTime: ~p\n", [timer:now_diff(now(), TimeBefore) / 1000.0]),
-                    erlkafka_protocol:parse_produce_response(ReplyBin)
+                {ok, << Length:32/integer >>} ->
+                    case gen_tcp:recv(State#state.socket, Length) of
+                        {error, closed} -> {error, closed};
+                        {ok, ReplyBin}  ->
+                            %io:format("RecTime: ~p\n", [timer:now_diff(now(), TimeBeforeRec) / 1000.0]),
+                            %io:format("ReqTime: ~p\n", [timer:now_diff(now(), TimeBefore) / 1000.0]),
+                            erlkafka_protocol:parse_produce_response(ReplyBin)
+                    end
             end
-    end,
+        end,
     {reply, Reply, State}.
 
 handle_cast(stop_link, State) ->
