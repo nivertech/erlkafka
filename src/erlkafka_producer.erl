@@ -96,12 +96,12 @@ maybe_send(State = #state{ leaders_by_topic_partitions = LeadersByTopicPartition
     SendBuffer = lists:foldl(FoldFun, orddict:new(), dict:to_list(Buffer)),
     Ref = make_ref(),
     [spawn(?MODULE, send, [Broker, Data, self(), Ref]) || {Broker, Data} <- SendBuffer],
-    Receive = fun(RefToReceive, Failure) ->
+    Receive = fun(_, Failure) ->
             receive
-                {ok, RefToReceive} ->
+                {Ref, ok} ->
                     io:format(".", []),
                     Failure;
-                {error, Error} ->
+                {Ref, {error, Error}} ->
                     io:format("Got Error ~p.", [Error]),
                     true
             after
@@ -110,7 +110,7 @@ maybe_send(State = #state{ leaders_by_topic_partitions = LeadersByTopicPartition
             end
     end,
     % we are not detecting what data got lost, just that we have failures
-    Failure = lists:foldl(Receive(Ref), false, SendBuffer),
+    Failure = lists:foldl(Receive, false, SendBuffer),
     io:format("*", []),
     % [send(Broker, Data) || {Broker, Data} <- SendBuffer],
     StateReset = State#state{ buffer = dict:new(), buffer_size = 0 },
