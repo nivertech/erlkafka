@@ -106,7 +106,8 @@ maybe_send(State = #state{ leaders_by_topic_partitions = LeadersByTopicPartition
                     true
             after
                 10000 ->
-                    io:format("Timeout.", [])
+                    io:format("Timeout.", []),
+                    false
             end
     end,
     % we are not detecting what data got lost, just that we have failures
