@@ -14,12 +14,12 @@ from_file(Topics, FN, Count, Rate) ->
     StartTime = now(),
     case Rate of
         undefined ->
-            [[gen_server:call(ballermann:pid(producer_pool), {add, one_of(Topics), L}, 10000)||L<-Lines]||_<-lists:seq(1, Series)];
+            [[gen_server:call(ballermann:pid(producer_pool), {add, one_of(Topics), L}, 30000)||L<-Lines]||_<-lists:seq(1, Series)];
         _ ->
             TimePerMsg = 1.0 / Rate * 1000000.0, %micros
             [lists:foldl(fun add_and_wait/2, {Topics, TimePerMsg, 0, os:timestamp()}, Lines)||_<-lists:seq(0, (Series - 1))]
     end,
-    Sync = fun(Pid) -> gen_server:call(Pid, sync, 10000) end,
+    Sync = fun(Pid) -> gen_server:call(Pid, sync, 30000) end,
     ballermann:apply_within(producer_pool, {erlang, list_to_atom, ["sync"]}, Sync),
     Elapsed = timer:now_diff(now(), StartTime) / 1000000,
     io:format("\n~p seconds for ~p messages: ~p ops\n", [Elapsed, Count, Count / Elapsed]).
@@ -35,7 +35,7 @@ add_and_wait(L, {Topics, TimePerMsg, N, SeriesStartTime}) ->
             end;
         false -> noop
     end,
-    gen_server:call(ballermann:pid(producer_pool), {add, one_of(Topics), L}, 10000),
+    gen_server:call(ballermann:pid(producer_pool), {add, one_of(Topics), L}, 30000),
     {Topics, TimePerMsg, N + 1, SeriesStartTime}.
 
 
