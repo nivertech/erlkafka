@@ -57,12 +57,26 @@ get_leader_by_topic_partitions(State) ->
     {ok, Conn} = ezk:start_connection(),
     {ok, Topics} =  ezk:ls(Conn, "/brokers/topics"),
 
-    Partitions = fun(Topic) -> {ok, Pt} = ezk:ls(Conn, "/brokers/topics/" ++ binary_to_list(Topic) ++ "/partitions"), Pt end,
+    Partitions = fun(Topic) -> 
+                    case ezk:ls(Conn, "/brokers/topics/" ++ binary_to_list(Topic) ++ "/partitions") of
+                        {ok, Pt} ->
+                            Pt;
+                        {error, no_dir} ->
+                            [<<"0">>];
+                        Other ->
+                            io:format("Other: ~p\n", Other),
+                            [<<"0">>]
+                    end
+                 end,
 
     PartitionLeader = fun(Topic, Partition) ->
-      {ok, {TopicState, _}} = ezk:get(Conn, "/brokers/topics/" ++ binary_to_list(Topic) ++ "/partitions/" ++ binary_to_list(Partition) ++ "/state"),
-      {Dict} = jiffy:decode(TopicState),
-      orddict:fetch(<<"leader">>, Dict)
+        case ezk:get(Conn, "/brokers/topics/" ++ binary_to_list(Topic) ++ "/partitions/" ++ binary_to_list(Partition) ++ "/state") of
+            {ok, {TopicState, _}} ->
+                {Dict} = jiffy:decode(TopicState),
+                orddict:fetch(<<"leader">>, Dict);
+            {error, no_dir} ->
+                <<"0">>                
+        end
     end,
 
     PartitionLeaders        =

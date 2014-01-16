@@ -33,6 +33,36 @@ init([Host, Port]) ->
                                    [binary, {active, false}, {packet, raw}]),
     {ok, #state{socket=Socket}, 0}.
 
+handle_call({request_with_response, Req}, _From, State) ->
+    ok = gen_tcp:send(State#state.socket, Req),
+    case gen_tcp:recv(State#state.socket, 6) of
+        {ok, <<2:32/integer, 0:16/integer>>} ->
+            {reply, {ok, []}, State};
+        {ok, <<L:32/integer, 0:16/integer>>} ->
+            {ok, Data} = gen_tcp:recv(State#state.socket, L-2),
+            {Messages, Size} = erlkafka_protocol:parse_messages(Data),
+            {reply, {ok, {Messages, Size}}, State};
+        {ok, B} ->
+            {reply, {error, B}, State}
+    end;
+
+handle_call({request_with_response_offset, Req}, _From, State) ->
+    ok = gen_tcp:send(State#state.socket, Req),
+    case gen_tcp:recv(State#state.socket, 6) of
+        {ok, <<2:32/integer, 0:16/integer>>} ->
+            {reply, {ok, []}, State};
+        {ok, <<L:32/integer, 0:16/integer>>} ->
+            {ok, Data} = gen_tcp:recv(State#state.socket, L-2),
+            Offsets = erlkafka_protocol:parse_offsets(Data),
+            {reply, {ok, Offsets}, State};
+        {ok, B} ->
+            {reply, {error, B}, State}
+    end;
+    
+handle_call({request, Req}, _From, State) ->
+    ok = gen_tcp:send(State#state.socket, Req),
+    {reply, ok, State};
+
 handle_call({produce, Req}, _From, State) ->
     % TimeBefore = now(),
     Reply =

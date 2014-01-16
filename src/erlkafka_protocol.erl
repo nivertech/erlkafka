@@ -224,7 +224,7 @@ get_dynamic_list_of_broker_partitions(Topic) ->
                             [{BrokerId, lists:seq(0, NumPartitions )} |Acc3]
                         end,
                         [],
-                        lists:foldr(fun({BrokerId, _, _ }, Acc4) ->
+                        lists:foldr(fun({BrokerId, {_, _} }, Acc4) ->
                                         [{BrokerId,
                                           get_num_partitions_topic_broker(Topic, BrokerId)
                                          } | Acc4]
@@ -251,8 +251,24 @@ get_dynamic_list_of_brokers() ->
     {ok, RawListBrokers} = ezk:ls(Conn, "/brokers/ids"),
 
     ParseBroker = fun(Id, {ok, {Json, _}}) ->
-      {Data} = jiffy:decode(Json),
-      {list_to_integer(binary_to_list(Id)), {binary_to_list(proplists:get_value(<<"host">>, Data)), proplists:get_value(<<"port">>, Data)}}
+        %{Data} = jiffy:decode(Json),
+        %{list_to_integer(binary_to_list(Id)), {binary_to_list(proplists:get_value(<<"host">>, Data)), proplists:get_value(<<"port">>, Data)}}
+        
+        %<<"127.0.0.1-1389622531778:127.0.0.1:9092">>,
+        io:format("Id ~p, Json ~p\n", [Id, Json]),
+        case binary:split(Json, <<":">>, [global]) of
+            [Id2, Host, Port] ->
+                io:format("Id2 ~p, Host ~p, Port ~p\n", [Id2, Host, Port]),
+                { 
+                    list_to_integer(binary_to_list(Id)), 
+                    { 
+                        binary_to_list(Host), 
+                        list_to_integer(binary_to_list(Port))
+                    }
+                };
+            Other ->
+                io:format("Other ~p\n", [Other])
+        end
     end,
     Brokers = orddict:from_list([ParseBroker(Id, ezk:get(Conn, "/brokers/ids/" ++ Id)) || Id <- RawListBrokers]),
 
